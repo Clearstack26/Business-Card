@@ -253,9 +253,11 @@ function filterLinks(cfg) {
 
 function setMeta(cfg) {
   const base = metaBaseUrl(cfg);
-  const title = `${cfg.name} — ${cfg.organization}`;
-  const desc = `${cfg.title} at ${cfg.organization}. Connect via website, LinkedIn, or book a call.`;
-  document.title = title;
+  const pageTitle =
+    String(cfg.documentTitle || "").trim() ||
+    `${cfg.name} — ${cfg.organization}`;
+  const desc = `${cfg.name} — ${cfg.title}, ${cfg.organization}. Website, LinkedIn, book a call.`;
+  document.title = pageTitle;
 
   const set = (sel, attr, val) => {
     const el = document.querySelector(sel);
@@ -265,11 +267,11 @@ function setMeta(cfg) {
   const photoAbs = cfg.photo.startsWith("http") ? cfg.photo : absoluteUrl(base, cfg.photo);
 
   set('meta[name="description"]', "content", desc);
-  set('meta[property="og:title"]', "content", title);
+  set('meta[property="og:title"]', "content", pageTitle);
   set('meta[property="og:description"]', "content", desc);
   set('meta[property="og:url"]', "content", `${base}/`);
   set('meta[property="og:image"]', "content", photoAbs);
-  set('meta[name="twitter:title"]', "content", title);
+  set('meta[name="twitter:title"]', "content", pageTitle);
   set('meta[name="twitter:description"]', "content", desc);
   set('meta[name="twitter:image"]', "content", photoAbs);
 }
