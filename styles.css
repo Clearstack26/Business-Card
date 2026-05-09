@@ -539,6 +539,20 @@ button.link-card {
   opacity: 0.92;
 }
 
+.vcard-modal__hint--accent strong {
+  color: var(--accent-deep);
+}
+
+.vcard-modal__hint--accent {
+  color: var(--ink);
+  opacity: 1;
+}
+
+.vcard-modal__btn[disabled] {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 .vcard-modal__actions {
   display: flex;
   flex-wrap: wrap;

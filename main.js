@@ -248,38 +248,58 @@ strong{color:#0f0e14;font-weight:600}</style></head><body><p><strong>Preparing y
 }
 
 /**
- * Delivers an already-built vCard string: Share sheet → Contacts, else blob in helper tab,
- * else download anchor. Prefer opening the helper tab from the modal “Continue” click
- * (user gesture), not from the first tap on the list row.
+ * Share sheet first (often includes “Contacts”), with a smaller vCard retry if the embed is huge.
+ * @returns {Promise<"abort" | "ok" | "skip">}
  */
-async function deliverEmbedVCard(cfg, textEmbed, reservedWindow) {
+async function shareVCardFromEmbedText(cfg, textEmbed, displayName) {
   const filename = `${slugFileName(cfg.name)}.vcf`;
   const blobEmbed = new Blob([textEmbed], { type: "text/vcard;charset=utf-8" });
 
-  let r = await shareVCardBlob(blobEmbed, filename, cfg.name);
-  if (r === "abort") {
-    reservedWindow?.close();
-    return;
-  }
+  let r = await shareVCardBlob(blobEmbed, filename, displayName);
+  if (r === "abort" || r === "ok") return r;
 
   if (r === "skip" && blobEmbed.size > 120000) {
     try {
       const liteTxt = await buildVCardPayload(cfg, { photoMode: "uri" });
       const liteBlob = new Blob([liteTxt], { type: "text/vcard;charset=utf-8" });
-      r = await shareVCardBlob(liteBlob, filename, cfg.name);
-      if (r === "abort") {
-        reservedWindow?.close();
-        return;
-      }
+      r = await shareVCardBlob(liteBlob, filename, displayName);
+      if (r === "abort" || r === "ok") return r;
     } catch {
-      /* continue to tab / download */
+      /* fall through */
+    }
+  }
+  return "skip";
+}
+
+function isLikelyInAppBrowser() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  return /Instagram|FBAN|FBAV|FB_IAB|LinkedInApp|Line\/|Snapchat|.*; wv\)|MicroMessenger/i.test(
+    ua
+  );
+}
+
+/**
+ * Delivers vCard: optionally Web Share first, then blob in helper tab, then download.
+ * @param {{ tryShareFirst?: boolean }} [opts] — set false when share was already attempted from the same tap
+ */
+async function deliverEmbedVCard(cfg, textEmbed, reservedWindow, opts) {
+  const tryShareFirst = opts?.tryShareFirst !== false;
+
+  if (tryShareFirst) {
+    const sr = await shareVCardFromEmbedText(cfg, textEmbed, cfg.name);
+    if (sr === "abort") {
+      reservedWindow?.close?.();
+      return;
+    }
+    if (sr === "ok") {
+      reservedWindow?.close?.();
+      return;
     }
   }
 
-  if (r === "ok") {
-    reservedWindow?.close();
-    return;
-  }
+  const filename = `${slugFileName(cfg.name)}.vcf`;
+  const blobEmbed = new Blob([textEmbed], { type: "text/vcard;charset=utf-8" });
 
   let openPayload = textEmbed;
   try {
@@ -321,7 +341,25 @@ const vcardFlow = {
   prefetch: /** @type {Promise<string> | null} */ (null),
   cfg: /** @type {object | null} */ (null),
   focusReturn: /** @type {HTMLElement | null} */ (null),
+  /** Set when prefetch resolves while the modal is open */
+  embedText: /** @type {string | null} */ (null),
 };
+
+/** @param {"loading" | "ready" | "error"} state */
+function setVcardContinueState(state) {
+  const btn = document.getElementById("vcard-modal-continue");
+  if (!btn) return;
+  if (state === "loading") {
+    btn.disabled = true;
+    btn.textContent = "Preparing card…";
+  } else if (state === "ready") {
+    btn.disabled = false;
+    btn.textContent = "Continue";
+  } else {
+    btn.disabled = false;
+    btn.textContent = "Try again";
+  }
+}
 
 function getVcardModalEls() {
   const root = document.getElementById("vcard-modal");
@@ -337,11 +375,28 @@ function openVcardModal(cfg, focusSource) {
   if (!els?.root || !cfg) return;
 
   vcardFlow.cfg = cfg;
+  vcardFlow.embedText = null;
   vcardFlow.focusReturn =
     focusSource instanceof HTMLElement
       ? focusSource
       : /** @type {HTMLElement | null} */ (document.activeElement);
+  setVcardContinueState("loading");
+
+  const cfgRef = cfg;
   vcardFlow.prefetch = buildVCardPayload(cfg, { photoMode: "embed" });
+  vcardFlow.prefetch
+    .then((text) => {
+      if (vcardFlow.cfg !== cfgRef) return;
+      vcardFlow.embedText = text;
+      setVcardContinueState("ready");
+    })
+    .catch(() => {
+      if (vcardFlow.cfg !== cfgRef) return;
+      setVcardContinueState("error");
+    });
+
+  const iab = document.getElementById("vcard-modal-iab");
+  if (iab) iab.hidden = !isLikelyInAppBrowser();
 
   els.root.hidden = false;
   els.continueBtn?.focus();
@@ -356,7 +411,11 @@ function closeVcardModal() {
   els.root.hidden = true;
   vcardFlow.prefetch = null;
   vcardFlow.cfg = null;
+  vcardFlow.embedText = null;
   trapVcardEscape(false);
+
+  const iab = document.getElementById("vcard-modal-iab");
+  if (iab) iab.hidden = true;
 
   const ret = vcardFlow.focusReturn;
   vcardFlow.focusReturn = null;
@@ -404,33 +463,57 @@ function bindVcardModalUiOnce() {
 async function onVcardContinue() {
   const cfg = vcardFlow.cfg;
   const prefetchPromise = vcardFlow.prefetch;
+  let textEmbed = vcardFlow.embedText;
   if (!cfg) return;
+
+  const continueBtn = document.getElementById("vcard-modal-continue");
+  if (continueBtn?.disabled && continueBtn?.textContent === "Preparing card…") return;
+
+  if (!textEmbed) {
+    if (continueBtn) {
+      continueBtn.disabled = true;
+      continueBtn.textContent = "Preparing card…";
+    }
+    try {
+      textEmbed = await (prefetchPromise != null
+        ? prefetchPromise.catch(() => buildVCardPayload(cfg, { photoMode: "embed" }))
+        : buildVCardPayload(cfg, { photoMode: "embed" }));
+    } catch {
+      if (continueBtn) setVcardContinueState("error");
+      showToast("Could not prepare contact card — tap Try again");
+      return;
+    }
+    if (continueBtn) {
+      continueBtn.textContent = "Continue";
+      continueBtn.disabled = false;
+    }
+  }
+
+  if (isLikelyInAppBrowser()) {
+    showToast("Open this page in Safari or Chrome, then use Add to contacts", 5500);
+  }
+
+  closeVcardModal();
+
+  const shareResult = await shareVCardFromEmbedText(cfg, textEmbed, cfg.name);
+  if (shareResult === "ok" || shareResult === "abort") return;
 
   const w = window.open("about:blank", "_blank");
   if (!w) {
-    showToast("Allow pop-ups for this page, then tap Continue again", 5000);
+    showToast("Allow pop-ups for this page, then try Add to contacts again", 5000);
+    try {
+      await deliverEmbedVCard(cfg, textEmbed, null, { tryShareFirst: false });
+    } catch {
+      showToast("Could not download contact card — try Safari or Chrome");
+    }
     return;
   }
   writeVcardPreparingPlaceholder(w);
-  closeVcardModal();
-
-  let textEmbed;
   try {
-    textEmbed =
-      prefetchPromise != null
-        ? await prefetchPromise
-        : await buildVCardPayload(cfg, { photoMode: "embed" });
+    await deliverEmbedVCard(cfg, textEmbed, w, { tryShareFirst: false });
   } catch {
-    w?.close();
-    showToast("Could not prepare contact card — tap Add to contacts to try again");
-    return;
-  }
-
-  try {
-    await deliverEmbedVCard(cfg, textEmbed, w);
-  } catch {
-    if (w && !w.closed) w.close();
-    showToast("Could not open contact card — try allowing pop-ups or download from the toast");
+    if (!w.closed) w.close();
+    showToast("Could not open contact card — try allowing pop-ups");
   }
 }
 
