@@ -282,7 +282,7 @@ async function shareVCardBlob(blob, filename, displayName) {
     await navigator.share({
       files: [file],
       title: `Add ${displayName} to Contacts`,
-      text: `${displayName} — open in Contacts to save`,
+      text: `${displayName}. Open in Contacts to save.`,
     });
     return "ok";
   } catch (e) {
@@ -446,8 +446,8 @@ function openVcardModal(cfg, focusSource) {
   const nm = String(cfg?.name ?? "").trim();
   if (desc) {
     desc.textContent = nm
-      ? `${nm}: Approve to add them to your Contacts — your phone will ask once to confirm.`
-      : `Approve to add this profile to Contacts — your phone will ask once to confirm.`;
+      ? `Save ${nm} to this device.`
+      : `Save this contact to this device.`;
   }
 
   setVcardApproveState("loading");
@@ -550,7 +550,7 @@ async function onVcardApprove() {
         : buildVCardPayload(cfg, { photoMode: "embed" }));
     } catch {
       if (approveBtn) setVcardApproveState("error");
-      showToast("Could not load contact — tap Try again");
+      showToast("Could not load contact. Tap Try again.");
       return;
     }
     if (approveBtn) setVcardApproveState("ready");
@@ -571,7 +571,7 @@ async function onVcardApprove() {
     try {
       await deliverEmbedVCard(cfg, textEmbed, null, { tryShareFirst: false });
     } catch {
-      showToast("Could not finish save — open in Safari or Chrome");
+      showToast("Could not finish save. Open in Safari or Chrome.");
     }
     return;
   }
@@ -580,7 +580,7 @@ async function onVcardApprove() {
     await deliverEmbedVCard(cfg, textEmbed, w, { tryShareFirst: false });
   } catch {
     if (!w.closed) w.close();
-    showToast("Could not finish — allow pop‑ups or try Safari");
+    showToast("Could not finish. Allow pop-ups or try Safari.");
   }
 }
 
@@ -680,7 +680,7 @@ function render(cfg) {
       btn.className = "link-card link-card--compact";
       btn.setAttribute(
         "aria-label",
-        `${link.label}: approve to add contact to your device`
+        `${link.label}: save to this device`
       );
       btn.addEventListener("click", () => {
         openVcardModal(cfg, btn);
