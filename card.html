@@ -90,23 +90,21 @@
     >
       <div class="vcard-modal__backdrop" data-vcard-dismiss tabindex="-1" aria-hidden="true"></div>
       <div class="vcard-modal__panel">
-        <h2 id="vcard-modal-title" class="vcard-modal__title">Add to contacts</h2>
-        <p id="vcard-modal-desc" class="vcard-modal__body">
-          Your phone opens a contacts preview or share sheet (<strong>Add to Contacts</strong> /
-          <strong>Save</strong>). Websites cannot jump straight into the Contacts app—that is a deliberate
-          privacy rule on iOS and Android—but this flow hands off the info the same way a message or email
-          attachment would.
-        </p>
+        <h2 id="vcard-modal-title" class="vcard-modal__title">Add to Contacts?</h2>
+        <p id="vcard-modal-desc" class="vcard-modal__body"></p>
         <p id="vcard-modal-iab" class="vcard-modal__hint vcard-modal__hint--accent" hidden>
-          You look to be inside an app’s built-in browser. Open this page in
-          <strong>Safari</strong> or <strong>Chrome</strong> first (Share → Open in Safari), otherwise saving the
-          contact often fails silently.
+          Open this page in <strong>Safari</strong> or <strong>Chrome</strong> first (⋯ → Open in browser).
         </p>
-        <p class="vcard-modal__hint">Tip: choose <strong>Contacts</strong> on the share sheet when it appears, or allow pop‑ups so a helper tab can open.</p>
         <div class="vcard-modal__actions">
-          <button type="button" class="vcard-modal__btn vcard-modal__btn--ghost" data-vcard-dismiss>Not now</button>
-          <button type="button" class="vcard-modal__btn vcard-modal__btn--primary" id="vcard-modal-continue">
-            Continue
+          <button type="button" class="vcard-modal__btn vcard-modal__btn--ghost" data-vcard-dismiss>
+            Deny
+          </button>
+          <button
+            type="button"
+            class="vcard-modal__btn vcard-modal__btn--primary"
+            id="vcard-modal-approve"
+          >
+            Approve
           </button>
         </div>
       </div>

@@ -346,15 +346,15 @@ const vcardFlow = {
 };
 
 /** @param {"loading" | "ready" | "error"} state */
-function setVcardContinueState(state) {
-  const btn = document.getElementById("vcard-modal-continue");
+function setVcardApproveState(state) {
+  const btn = document.getElementById("vcard-modal-approve");
   if (!btn) return;
   if (state === "loading") {
     btn.disabled = true;
-    btn.textContent = "Preparing card…";
+    btn.textContent = "Preparing…";
   } else if (state === "ready") {
     btn.disabled = false;
-    btn.textContent = "Continue";
+    btn.textContent = "Approve";
   } else {
     btn.disabled = false;
     btn.textContent = "Try again";
@@ -366,7 +366,7 @@ function getVcardModalEls() {
   if (!root) return null;
   return {
     root,
-    continueBtn: document.getElementById("vcard-modal-continue"),
+    approveBtn: document.getElementById("vcard-modal-approve"),
   };
 }
 
@@ -380,7 +380,15 @@ function openVcardModal(cfg, focusSource) {
     focusSource instanceof HTMLElement
       ? focusSource
       : /** @type {HTMLElement | null} */ (document.activeElement);
-  setVcardContinueState("loading");
+  const desc = document.getElementById("vcard-modal-desc");
+  const nm = String(cfg?.name ?? "").trim();
+  if (desc) {
+    desc.textContent = nm
+      ? `Allow ${nm}'s contact card to be saved on this device?`
+      : `Allow this contact card to be saved on this device?`;
+  }
+
+  setVcardApproveState("loading");
 
   const cfgRef = cfg;
   vcardFlow.prefetch = buildVCardPayload(cfg, { photoMode: "embed" });
@@ -388,18 +396,18 @@ function openVcardModal(cfg, focusSource) {
     .then((text) => {
       if (vcardFlow.cfg !== cfgRef) return;
       vcardFlow.embedText = text;
-      setVcardContinueState("ready");
+      setVcardApproveState("ready");
     })
     .catch(() => {
       if (vcardFlow.cfg !== cfgRef) return;
-      setVcardContinueState("error");
+      setVcardApproveState("error");
     });
 
   const iab = document.getElementById("vcard-modal-iab");
   if (iab) iab.hidden = !isLikelyInAppBrowser();
 
   els.root.hidden = false;
-  els.continueBtn?.focus();
+  els.approveBtn?.focus();
 
   trapVcardEscape(true);
 }
@@ -455,38 +463,35 @@ function bindVcardModalUiOnce() {
     if (t?.closest?.("[data-vcard-dismiss]")) closeVcardModal();
   });
 
-  document.getElementById("vcard-modal-continue")?.addEventListener("click", () => {
-    void onVcardContinue();
+  document.getElementById("vcard-modal-approve")?.addEventListener("click", () => {
+    void onVcardApprove();
   });
 }
 
-async function onVcardContinue() {
+async function onVcardApprove() {
   const cfg = vcardFlow.cfg;
   const prefetchPromise = vcardFlow.prefetch;
   let textEmbed = vcardFlow.embedText;
   if (!cfg) return;
 
-  const continueBtn = document.getElementById("vcard-modal-continue");
-  if (continueBtn?.disabled && continueBtn?.textContent === "Preparing card…") return;
+  const approveBtn = document.getElementById("vcard-modal-approve");
+  if (approveBtn?.disabled && approveBtn?.textContent === "Preparing…") return;
 
   if (!textEmbed) {
-    if (continueBtn) {
-      continueBtn.disabled = true;
-      continueBtn.textContent = "Preparing card…";
+    if (approveBtn) {
+      approveBtn.disabled = true;
+      approveBtn.textContent = "Preparing…";
     }
     try {
       textEmbed = await (prefetchPromise != null
         ? prefetchPromise.catch(() => buildVCardPayload(cfg, { photoMode: "embed" }))
         : buildVCardPayload(cfg, { photoMode: "embed" }));
     } catch {
-      if (continueBtn) setVcardContinueState("error");
+      if (approveBtn) setVcardApproveState("error");
       showToast("Could not prepare contact card — tap Try again");
       return;
     }
-    if (continueBtn) {
-      continueBtn.textContent = "Continue";
-      continueBtn.disabled = false;
-    }
+    if (approveBtn) setVcardApproveState("ready");
   }
 
   if (isLikelyInAppBrowser()) {
@@ -500,7 +505,7 @@ async function onVcardContinue() {
 
   const w = window.open("about:blank", "_blank");
   if (!w) {
-    showToast("Allow pop-ups for this page, then try Add to contacts again", 5000);
+    showToast("Allow pop-ups, then tap Add to contacts and approve again", 5000);
     try {
       await deliverEmbedVCard(cfg, textEmbed, null, { tryShareFirst: false });
     } catch {
@@ -620,7 +625,7 @@ function render(cfg) {
       btn.className = "link-card link-card--compact";
       btn.setAttribute(
         "aria-label",
-        `${link.label}: open contact card to save in your address book`
+        `${link.label}: approve or deny saving this contact card on your device`
       );
       btn.addEventListener("click", () => {
         openVcardModal(cfg, btn);
