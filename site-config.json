@@ -1,0 +1,46 @@
+{
+  "baseUrl": "https://your-card.vercel.app",
+  "name": "Your Name",
+  "title": "Founder & CEO",
+  "organization": "ClearStack Digital",
+  "photo": "/headshot.png",
+  "logo": "/clearstack-logo.png",
+  "contact": {
+    "phone": "+61 400 000 000",
+    "email": "hello@clearstackdigital.com.au",
+    "website": "https://www.clearstackdigital.com.au/",
+    "note": "ClearStack Digital — custom websites for professional services."
+  },
+  "links": [
+    {
+      "id": "contact",
+      "label": "Add to contacts",
+      "description": "Save vCard to your phone",
+      "action": "vcard"
+    },
+    {
+      "id": "copy-email",
+      "label": "Copy email",
+      "description": "hello@clearstackdigital.com.au",
+      "action": "copy-email"
+    },
+    {
+      "id": "website",
+      "label": "Website",
+      "description": "clearstackdigital.com.au",
+      "url": "https://www.clearstackdigital.com.au/"
+    },
+    {
+      "id": "linkedin",
+      "label": "LinkedIn",
+      "description": "Connect on LinkedIn",
+      "url": "https://www.linkedin.com/in/mathew-alexander26"
+    },
+    {
+      "id": "book",
+      "label": "Book a call",
+      "description": "Discovery call — ClearStack",
+      "url": "https://www.clearstackdigital.com.au/start-website-build"
+    }
+  ]
+}

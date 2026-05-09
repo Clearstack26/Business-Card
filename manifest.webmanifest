@@ -1,0 +1,17 @@
+{
+  "name": "ClearStack Digital card",
+  "short_name": "ClearStack",
+  "description": "Digital business card — ClearStack Digital",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f4f0",
+  "theme_color": "#f6f4f0",
+  "icons": [
+    {
+      "src": "/clearstack-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

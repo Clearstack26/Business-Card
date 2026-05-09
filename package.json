@@ -1,0 +1,14 @@
+{
+  "name": "clearstack-digital-card",
+  "private": true,
+  "scripts": {
+    "start": "serve . -l 3000",
+    "preview": "serve . -l 3000",
+    "vendor:qrcode": "esbuild node_modules/qrcode/lib/browser.js --bundle --platform=browser --format=iife --global-name=QRCode --minify --outfile=vendor/qrcode.min.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.5",
+    "qrcode": "^1.5.4",
+    "serve": "^14.2.4"
+  }
+}
