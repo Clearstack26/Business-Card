@@ -232,23 +232,27 @@ async function shareVCardBlob(blob, filename, displayName) {
   }
 }
 
-/**
- * Saves your details with a standards-based vCard (.vcf).
- * Websites cannot programmatically force the OS Contacts UI open with one tap —
- * the system always parses the card and asks the user to confirm (usually Done /
- * Save). This flow prefers: Share sheet → choose Contacts, else a focused tab with
- * the vCard many phones treat as “add contact”, else download + short helper text.
- */
-async function offerVcardDownload(cfg, reservedWindow) {
-  let textEmbed;
+/** Shown in the popup tab while the vCard binary is assembled (often instant if prefetched). */
+function writeVcardPreparingPlaceholder(win) {
+  if (!win || win.closed) return;
   try {
-    textEmbed = await buildVCardPayload(cfg, { photoMode: "embed" });
+    win.document.open();
+    win.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,color-scheme=light"/><meta name="theme-color" content="#f4f2ed"/><title>Contact card</title><style>
+body{font-family:system-ui,-apple-system,sans-serif;margin:0;min-height:100dvh;display:grid;place-items:center;background:#f4f2ed;color:#4a4456;text-align:center;padding:1.5rem;box-sizing:border-box}
+p{max-width:18rem;line-height:1.5;margin:0;font-size:15px}
+strong{color:#0f0e14;font-weight:600}</style></head><body><p><strong>Preparing your contact card…</strong><br/>You can leave this tab open.</p></body></html>`);
+    win.document.close();
   } catch {
-    reservedWindow?.close();
-    showToast("Could not build contact card");
-    throw new Error("vcard-build");
+    /* about:blank may be restricted on some browsers */
   }
+}
 
+/**
+ * Delivers an already-built vCard string: Share sheet → Contacts, else blob in helper tab,
+ * else download anchor. Prefer opening the helper tab from the modal “Continue” click
+ * (user gesture), not from the first tap on the list row.
+ */
+async function deliverEmbedVCard(cfg, textEmbed, reservedWindow) {
   const filename = `${slugFileName(cfg.name)}.vcf`;
   const blobEmbed = new Blob([textEmbed], { type: "text/vcard;charset=utf-8" });
 
@@ -288,13 +292,20 @@ async function offerVcardDownload(cfg, reservedWindow) {
   const openBlob = new Blob([openPayload], { type: "text/vcard;charset=utf-8" });
   const objectUrl = URL.createObjectURL(openBlob);
 
-  if (reservedWindow && !reservedWindow.closed) {
-    reservedWindow.location.replace(objectUrl);
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 120000);
-    return;
+  let openedInHelperTab = false;
+  const helperWin = reservedWindow;
+  if (helperWin && !helperWin.closed) {
+    try {
+      helperWin.location.replace(objectUrl);
+      openedInHelperTab = true;
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 120000);
+    } catch {
+      helperWin.close();
+    }
+    if (openedInHelperTab) return;
   }
 
-  reservedWindow?.close();
+  helperWin?.close?.();
   const a = document.createElement("a");
   a.href = objectUrl;
   a.download = filename;
@@ -304,6 +315,123 @@ async function offerVcardDownload(cfg, reservedWindow) {
   a.remove();
   showToast("Open the file, then tap Add to Contacts", 5200);
   setTimeout(() => URL.revokeObjectURL(objectUrl), 2500);
+}
+
+const vcardFlow = {
+  prefetch: /** @type {Promise<string> | null} */ (null),
+  cfg: /** @type {object | null} */ (null),
+  focusReturn: /** @type {HTMLElement | null} */ (null),
+};
+
+function getVcardModalEls() {
+  const root = document.getElementById("vcard-modal");
+  if (!root) return null;
+  return {
+    root,
+    continueBtn: document.getElementById("vcard-modal-continue"),
+  };
+}
+
+function openVcardModal(cfg, focusSource) {
+  const els = getVcardModalEls();
+  if (!els?.root || !cfg) return;
+
+  vcardFlow.cfg = cfg;
+  vcardFlow.focusReturn =
+    focusSource instanceof HTMLElement
+      ? focusSource
+      : /** @type {HTMLElement | null} */ (document.activeElement);
+  vcardFlow.prefetch = buildVCardPayload(cfg, { photoMode: "embed" });
+
+  els.root.hidden = false;
+  els.continueBtn?.focus();
+
+  trapVcardEscape(true);
+}
+
+function closeVcardModal() {
+  const els = getVcardModalEls();
+  if (!els?.root) return;
+
+  els.root.hidden = true;
+  vcardFlow.prefetch = null;
+  vcardFlow.cfg = null;
+  trapVcardEscape(false);
+
+  const ret = vcardFlow.focusReturn;
+  vcardFlow.focusReturn = null;
+  if (ret && typeof ret.focus === "function") {
+    window.setTimeout(() => ret.focus(), 0);
+  }
+}
+
+/** @param {boolean} on */
+function trapVcardEscape(on) {
+  if (trapVcardEscape._bound === on) return;
+  trapVcardEscape._bound = on;
+  if (on) {
+    document.addEventListener("keydown", onVcardKeydown);
+  } else {
+    document.removeEventListener("keydown", onVcardKeydown);
+  }
+}
+trapVcardEscape._bound = false;
+
+/** @param {KeyboardEvent} e */
+function onVcardKeydown(e) {
+  if (e.key !== "Escape") return;
+  const els = getVcardModalEls();
+  if (!els?.root || els.root.hidden) return;
+  e.preventDefault();
+  closeVcardModal();
+}
+
+function bindVcardModalUiOnce() {
+  const els = getVcardModalEls();
+  if (!els?.root || els.root.dataset.bound === "1") return;
+  els.root.dataset.bound = "1";
+
+  els.root.addEventListener("click", (e) => {
+    const t = /** @type {HTMLElement} */ (e.target);
+    if (t?.closest?.("[data-vcard-dismiss]")) closeVcardModal();
+  });
+
+  document.getElementById("vcard-modal-continue")?.addEventListener("click", () => {
+    void onVcardContinue();
+  });
+}
+
+async function onVcardContinue() {
+  const cfg = vcardFlow.cfg;
+  const prefetchPromise = vcardFlow.prefetch;
+  if (!cfg) return;
+
+  const w = window.open("about:blank", "_blank");
+  if (!w) {
+    showToast("Allow pop-ups for this page, then tap Continue again", 5000);
+    return;
+  }
+  writeVcardPreparingPlaceholder(w);
+  closeVcardModal();
+
+  let textEmbed;
+  try {
+    textEmbed =
+      prefetchPromise != null
+        ? await prefetchPromise
+        : await buildVCardPayload(cfg, { photoMode: "embed" });
+  } catch {
+    w?.close();
+    showToast("Could not prepare contact card — tap Add to contacts to try again");
+    return;
+  }
+
+  try {
+    await deliverEmbedVCard(cfg, textEmbed, w);
+  } catch {
+    if (w && !w.closed) w.close();
+    showToast("Could not open contact card — try allowing pop-ups or download from the toast");
+  }
 }
 
 function showToast(message, durationMs = 2800) {
@@ -412,13 +540,7 @@ function render(cfg) {
         `${link.label}: open contact card to save in your address book`
       );
       btn.addEventListener("click", () => {
-        // Open synchronously on tap (required for mobile). Omit noopener so we get a
-        // Window reference to assign the vCard blob URL (opens Contacts on many phones).
-        const w = window.open("about:blank", "_blank");
-        offerVcardDownload(cfg, w).catch(() => {
-          if (w && !w.closed) w.close();
-          showToast("Could not open contact card — try again");
-        });
+        openVcardModal(cfg, btn);
       });
 
       const text = document.createElement("div");
@@ -462,6 +584,8 @@ function render(cfg) {
   mount.append(main);
   mount.classList.remove("is-loading");
   mount.removeAttribute("aria-busy");
+
+  bindVcardModalUiOnce();
 }
 
 async function init() {
