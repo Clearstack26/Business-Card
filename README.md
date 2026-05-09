@@ -10,6 +10,7 @@ Edit **[site-config.json](site-config.json)** at the repo root:
 | --- | --- |
 | `baseUrl` | Your live site origin (e.g. `https://your-project.vercel.app`). Used for Open Graph images, canonical URLs, and embedding your photo in the **vCard**. After first deploy, set this to your real domain. |
 | `name` | Your name as shown on the card and in the exported contact file. |
+| `documentTitle` | Browser tab / Share title (e.g. `Business Card - Mathew`). Optional — defaults to `name — organization`. |
 | `title` | Role line (e.g. `Founder & CEO`). |
 | `organization` | Company name under the role. |
 | `photo` | Path to headshot (default `/headshot.png`). |
