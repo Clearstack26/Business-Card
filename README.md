@@ -33,7 +33,7 @@ Edit **[site-config.json](site-config.json)** at the repo root:
 | Field | Purpose |
 | --- | --- |
 | `phone` | Mobile number as you want it saved (e.g. `+61 400 000 000`). |
-| `email` | Used on the card for **Copy email** and inside the vCard. Remove `email` to hide the copy row. |
+| `email` | Stored inside the saved **vCard** contact when people use **Add to contacts**. |
 | `website` | Primary website URL stored in the contact (often same as the Website link). |
 | `note` | Optional note field in the vCard. |
 
@@ -41,8 +41,9 @@ Edit **[site-config.json](site-config.json)** at the repo root:
 
 In `links`, entries can use `"action"` instead of `"url"`:
 
-- **`"action": "vcard"`** — **Add to contacts**: builds a `.vcf` with name, title, org, phone, email, website, LinkedIn (from your `linkedin` link), note, and **photo** (embedded when possible). On many phones the OS **share sheet** opens so they can save straight to Contacts; otherwise the file downloads.
-- **`"action": "copy-email"`** — Copies `contact.email` to the clipboard and shows a short confirmation. Omit `contact.email` to hide this row.
+- **`"action": "vcard"`** — **Add to contacts**: builds a **vCard 3.0** `.vcf` with your fields (phones use **E.164**, e.g. `+6147…`). The web platform **cannot** force the Contacts app open with zero taps — privacy rules apply everywhere. Behaviour is optimised so that on many phones users get **Share → Contacts**, or **a dedicated tab showing the parsed card**, or **a downloaded file** you open once and tap **Add to Contacts**.
+
+Normal links use `"url"` and optional `"description"` (subtitle under the label). Omit `description` for a single-line row.
 
 Swap **`linkedin`** and your **book-a-call** URL if you change them.
 

@@ -7,8 +7,6 @@ const ICONS = {
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg>',
   contact:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-  mail:
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
   external:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>',
 };
@@ -18,7 +16,6 @@ function iconFor(id) {
   if (id === "typeform" || id === "book") return ICONS.typeform;
   if (id === "website") return ICONS.website;
   if (id === "contact") return ICONS.contact;
-  if (id === "copy-email") return ICONS.mail;
   return ICONS.external;
 }
 
@@ -126,7 +123,7 @@ function slugFileName(name) {
   );
 }
 
-async function buildVCardPayload(cfg) {
+async function buildVCardPayload(cfg, opts = { photoMode: "embed" }) {
   const base = metaBaseUrl(cfg);
   const photoHref = cfg.photo.startsWith("http")
     ? cfg.photo
@@ -134,6 +131,26 @@ async function buildVCardPayload(cfg) {
   const contact = cfg.contact || {};
   const { fn, n } = structuredName(cfg.name);
   const lines = ["BEGIN:VCARD", "VERSION:3.0"];
+
+  /** Stable-ish UID helps some clients recognise updates; REV helps sync */
+  try {
+    const uid = crypto.randomUUID();
+    lines.push(`UID:${uid}`);
+  } catch {
+    lines.push(`UID:urn:business-card:${slugFileName(cfg.name)}:${Date.now()}`);
+  }
+  const rev =
+    typeof cfg.vcardRevision === "string" && cfg.vcardRevision.trim()
+      ? cfg.vcardRevision.trim()
+      : (() => {
+          const d = new Date();
+          const p = (n) => String(n).padStart(2, "0");
+          return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(
+            d.getUTCDate()
+          )}T${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`;
+        })();
+  lines.push(`REV:${rev}`);
+
   if (fn) {
     lines.push(`FN:${fn}`);
     lines.push(`N:${n}`);
@@ -146,7 +163,7 @@ async function buildVCardPayload(cfg) {
   }
   const tel = String(contact.phone || "").trim();
   if (tel) {
-    lines.push(`TEL;TYPE=CELL:${escapeVCardValue(tel)}`);
+    lines.push(`TEL;TYPE=CELL,VOICE:${escapeVCardValue(tel)}`);
   }
   const email = String(contact.email || "").trim();
   if (email) {
@@ -171,55 +188,125 @@ async function buildVCardPayload(cfg) {
     lines.push(`NOTE:${escapeVCardValue(note)}`);
   }
 
-  let photoLine = "";
-  try {
-    const { base64, type } = await fetchPhotoBase64(photoHref);
-    const raw = `PHOTO;ENCODING=b;TYPE=${type}:${base64}`;
-    photoLine = foldLine(raw);
-  } catch {
-    photoLine = `PHOTO;VALUE=URI:${photoHref}`;
+  if (opts.photoMode === "uri") {
+    lines.push(`PHOTO;VALUE=URI:${escapeVCardValue(photoHref)}`);
+  } else {
+    try {
+      const { base64, type } = await fetchPhotoBase64(photoHref);
+      const raw = `PHOTO;ENCODING=b;TYPE=${type}:${base64}`;
+      lines.push(foldLine(raw));
+    } catch {
+      lines.push(`PHOTO;VALUE=URI:${escapeVCardValue(photoHref)}`);
+    }
   }
-  lines.push(photoLine);
   lines.push("END:VCARD");
   return lines.join("\r\n");
 }
 
-async function offerVcardDownload(cfg) {
-  const text = await buildVCardPayload(cfg);
-  const blob = new Blob([text], { type: "text/vcard;charset=utf-8" });
-  const filename = `${slugFileName(cfg.name)}.vcf`;
-  const file = new File([blob], filename, { type: "text/vcard" });
+/** @returns {Promise<"abort" | "ok" | "skip">} */
+async function shareVCardBlob(blob, filename, displayName) {
+  const file = new File([blob], filename, {
+    type: "text/vcard;charset=utf-8",
+    lastModified: Date.now(),
+  });
+  if (!(navigator.share && typeof navigator.canShare === "function")) {
+    return "skip";
+  }
+  let sharable = false;
+  try {
+    sharable = navigator.canShare({ files: [file] });
+  } catch {
+    return "skip";
+  }
+  if (!sharable) return "skip";
+  try {
+    await navigator.share({
+      files: [file],
+      title: `Save ${displayName}`,
+      text: `Add ${displayName} to Contacts`,
+    });
+    return "ok";
+  } catch (e) {
+    if (e && e.name === "AbortError") return "abort";
+    return "skip";
+  }
+}
 
-  if (
-    typeof navigator !== "undefined" &&
-    navigator.share &&
-    navigator.canShare &&
-    navigator.canShare({ files: [file] })
-  ) {
+/**
+ * Saves your details with a standards-based vCard (.vcf).
+ * Websites cannot programmatically force the OS Contacts UI open with one tap —
+ * the system always parses the card and asks the user to confirm (usually Done /
+ * Save). This flow prefers: Share sheet → choose Contacts, else a focused tab with
+ * the vCard many phones treat as “add contact”, else download + short helper text.
+ */
+async function offerVcardDownload(cfg, reservedWindow) {
+  let textEmbed;
+  try {
+    textEmbed = await buildVCardPayload(cfg, { photoMode: "embed" });
+  } catch {
+    reservedWindow?.close();
+    showToast("Could not build contact card");
+    throw new Error("vcard-build");
+  }
+
+  const filename = `${slugFileName(cfg.name)}.vcf`;
+  const blobEmbed = new Blob([textEmbed], { type: "text/vcard;charset=utf-8" });
+
+  let r = await shareVCardBlob(blobEmbed, filename, cfg.name);
+  if (r === "abort") {
+    reservedWindow?.close();
+    return;
+  }
+
+  if (r === "skip" && blobEmbed.size > 120000) {
     try {
-      await navigator.share({
-        files: [file],
-        title: `Add ${cfg.name}`,
-        text: "Contact card",
-      });
-      return;
-    } catch (e) {
-      if (e && e.name === "AbortError") return;
+      const liteTxt = await buildVCardPayload(cfg, { photoMode: "uri" });
+      const liteBlob = new Blob([liteTxt], { type: "text/vcard;charset=utf-8" });
+      r = await shareVCardBlob(liteBlob, filename, cfg.name);
+      if (r === "abort") {
+        reservedWindow?.close();
+        return;
+      }
+    } catch {
+      /* continue to tab / download */
     }
   }
 
-  const url = URL.createObjectURL(blob);
+  if (r === "ok") {
+    reservedWindow?.close();
+    return;
+  }
+
+  let openPayload = textEmbed;
+  try {
+    if (blobEmbed.size > 220000) {
+      openPayload = await buildVCardPayload(cfg, { photoMode: "uri" });
+    }
+  } catch {
+    openPayload = textEmbed;
+  }
+  const openBlob = new Blob([openPayload], { type: "text/vcard;charset=utf-8" });
+  const objectUrl = URL.createObjectURL(openBlob);
+
+  if (reservedWindow && !reservedWindow.closed) {
+    reservedWindow.location.replace(objectUrl);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 120000);
+    return;
+  }
+
+  reservedWindow?.close();
   const a = document.createElement("a");
-  a.href = url;
+  a.href = objectUrl;
   a.download = filename;
   a.rel = "noopener";
   document.body.appendChild(a);
   a.click();
   a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2500);
+  showToast("Open the file, then tap Add to Contacts", 5200);
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 2500);
 }
 
-function showToast(message) {
+function showToast(message, durationMs = 2800) {
   const el = document.getElementById("toast");
   if (!el) return;
   el.textContent = message;
@@ -228,27 +315,25 @@ function showToast(message) {
   showToast._t = window.setTimeout(() => {
     el.hidden = true;
     el.textContent = "";
-  }, 2600);
+  }, durationMs);
 }
 
-async function copyEmail(email) {
-  const addr = String(email || "").trim();
-  if (!addr) return;
-  try {
-    await navigator.clipboard.writeText(addr);
-    showToast("Email copied");
-  } catch {
-    showToast("Could not copy — select and copy manually");
+function linkDescription(link) {
+  return String(link.description || "").trim();
+}
+
+function appendLinkContents(textWrap, labelText, optionalDesc) {
+  const label = document.createElement("span");
+  label.className = "link-card__label";
+  label.textContent = labelText;
+  textWrap.append(label);
+  const descStr = String(optionalDesc || "").trim();
+  if (descStr) {
+    const desc = document.createElement("span");
+    desc.className = "link-card__desc";
+    desc.textContent = descStr;
+    textWrap.append(desc);
   }
-}
-
-function filterLinks(cfg) {
-  return (cfg.links || []).filter((link) => {
-    if (link.action === "copy-email" && !(cfg.contact && cfg.contact.email)) {
-      return false;
-    }
-    return true;
-  });
 }
 
 function canonicalCardUrl(cfg) {
@@ -309,63 +394,36 @@ function render(cfg) {
   orgEl.textContent = cfg.organization;
 
   linksMount.innerHTML = "";
-  const links = filterLinks(cfg);
+  const links = cfg.links || [];
 
   for (const link of links) {
+    if (link.action === "copy-email") continue;
+
     const li = document.createElement("li");
     li.className = "link-list__item";
+    const desc = linkDescription(link);
 
     if (link.action === "vcard") {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "link-card";
+      btn.className = "link-card link-card--compact";
       btn.setAttribute(
         "aria-label",
-        `${link.label}: download contact card for your address book`
+        `${link.label}: open contact card to save in your address book`
       );
       btn.addEventListener("click", () => {
-        offerVcardDownload(cfg).catch(() =>
-          showToast("Could not build contact card — try again")
-        );
+        // Open synchronously on tap (required for mobile). Omit noopener so we get a
+        // Window reference to assign the vCard blob URL (opens Contacts on many phones).
+        const w = window.open("about:blank", "_blank");
+        offerVcardDownload(cfg, w).catch(() => {
+          if (w && !w.closed) w.close();
+          showToast("Could not open contact card — try again");
+        });
       });
 
       const text = document.createElement("div");
       text.className = "link-card__text";
-      const label = document.createElement("span");
-      label.className = "link-card__label";
-      label.textContent = link.label;
-      const desc = document.createElement("span");
-      desc.className = "link-card__desc";
-      desc.textContent = link.description || "Includes photo, phone, links";
-      text.append(label, desc);
-
-      const iconWrap = document.createElement("span");
-      iconWrap.className = "link-card__icon";
-      iconWrap.innerHTML = iconFor(link.id);
-
-      btn.append(text, iconWrap);
-      li.append(btn);
-      linksMount.append(li);
-      continue;
-    }
-
-    if (link.action === "copy-email") {
-      const email = cfg.contact && cfg.contact.email;
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "link-card";
-      btn.setAttribute("aria-label", `Copy email ${email} to clipboard`);
-      btn.addEventListener("click", () => copyEmail(email));
-
-      const text = document.createElement("div");
-      text.className = "link-card__text";
-      const label = document.createElement("span");
-      label.className = "link-card__label";
-      label.textContent = link.label;
-      const desc = document.createElement("span");
-      desc.className = "link-card__desc";
-      desc.textContent = email;
-      text.append(label, desc);
+      appendLinkContents(text, link.label, desc);
 
       const iconWrap = document.createElement("span");
       iconWrap.className = "link-card__icon";
@@ -378,24 +436,18 @@ function render(cfg) {
     }
 
     const a = document.createElement("a");
-    a.className = "link-card";
+    a.className = desc ? "link-card" : "link-card link-card--compact";
     a.href = link.url;
     a.target = "_blank";
     a.rel = "noopener noreferrer";
     a.setAttribute(
       "aria-label",
-      `${link.label}: ${link.description} (opens in new tab)`
+      desc ? `${link.label}: ${desc} (opens in new tab)` : `${link.label} (opens in new tab)`
     );
 
     const text = document.createElement("div");
     text.className = "link-card__text";
-    const label = document.createElement("span");
-    label.className = "link-card__label";
-    label.textContent = link.label;
-    const desc = document.createElement("span");
-    desc.className = "link-card__desc";
-    desc.textContent = link.description;
-    text.append(label, desc);
+    appendLinkContents(text, link.label, desc);
 
     const iconWrap = document.createElement("span");
     iconWrap.className = "link-card__icon";
