@@ -1,5 +1,6 @@
 {
   "baseUrl": "https://your-card.vercel.app",
+  "cardPath": "/card",
   "name": "Mathew Alexander",
   "documentTitle": "Business Card - Mathew",
   "title": "Founder & CEO",

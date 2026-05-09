@@ -4,11 +4,21 @@ Static HTML/CSS card meant to open from a **QR code** (printed, on screen, or vi
 
 ## Customize
 
+### URLs
+
+| Path | Page |
+| --- | --- |
+| **`/`** | **QR only** — big centred code visitors scan |
+| **`/card`** | Full digital **business card** (photo, links, vCard) |
+
+The QR payload is **`baseUrl` + `cardPath`** (default **`/card`**) so scanners open the profile, not the QR page again.
+
 Edit **[site-config.json](site-config.json)** at the repo root:
 
 | Field | Purpose |
 | --- | --- |
-| `baseUrl` | Your live site origin (e.g. `https://your-project.vercel.app`). Used for Open Graph images, canonical URLs, and embedding your photo in the **vCard**. After first deploy, set this to your real domain. |
+| `baseUrl` | Your live site origin (e.g. `https://your-project.vercel.app`). Used for QR link when not using the placeholder; Open Graph **card** URL and vCard photo embedding. After first deploy, set this to your real domain. |
+| `cardPath` | Path encoded in the QR (default **`/card`**). Must match how you deploy (see **`vercel.json`** / **`serve.json`** rewrite to `card.html`). |
 | `name` | Your name as shown on the card and in the exported contact file. |
 | `documentTitle` | Browser tab / Share title (e.g. `Business Card - Mathew`). Optional — defaults to `name — organization`. |
 | `title` | Role line (e.g. `Founder & CEO`). |
@@ -53,7 +63,7 @@ npm install
 npm start
 ```
 
-Leave that terminal open. Then open **http://localhost:3000/** for the card or **http://localhost:3000/preview.html** for the QR-only page.
+Leave that terminal open. Then open **http://localhost:3000/** for the **QR page** or **http://localhost:3000/card** for the **full card** ([`serve.json`](serve.json) rewrites `/card` → `card.html`).
 
 **Option B — one-off (any port `serve` chooses):**
 
@@ -69,13 +79,19 @@ On **Windows PowerShell**, run commands from this folder; avoid **`&&`** unless 
 
 Nothing is listening on that port yet — start the server with **`npm start`** (after **`npm install`**) from this project folder, then refresh.
 
-### QR-only preview (desktop testing)
+### QR preview
 
-Open **`/preview.html`** (e.g. `http://localhost:3000/preview.html`). You can also open **`/?preview=qr`** — it redirects to that page. You get **only a large QR code** that encodes your **card URL** (from `baseUrl` in `site-config.json`, or the same origin if `baseUrl` is still the placeholder). The QR library is **bundled into [`vendor/qrcode.min.js`](vendor/qrcode.min.js)** so it does **not** rely on a CDN (blocked by some networks/ad blockers).
+The **home page `/`** is the QR screen. **`/preview.html`** redirects to **`/`**. The QR encodes **`/card`** on your deployed origin when `baseUrl` is unset or placeholder. The QR library is **bundled** in [`vendor/qrcode.min.js`](vendor/qrcode.min.js).
 
-After you deploy, set **`baseUrl`** in `site-config.json` to your live domain so the QR opens production when you preview from localhost or another machine.
+After deploy, set **`baseUrl`** in `site-config.json` to your live domain so sharable metadata and QR “production” links stay correct.
 
-To rebuild that file after upgrading the `qrcode` dependency: **`npm run vendor:qrcode`** (requires `npm install`).
+To rebuild **`vendor/qrcode.min.js`** after upgrading `qrcode`: **`npm run vendor:qrcode`**.
+
+### Vercel shows “403 Forbidden” on the preview
+
+Often **Deployment Protection** (Vercel Authentication) is enabled on the team / project — only logged-in users can open the preview. For a card people scan in the wild: **Project → Settings → Deployment Protection** → allow public access to **Production** (and Preview if needed), or redeploy without protection.
+
+Also confirm **Root Directory** is **`./`** and you did **not** set **Output Directory** to a non-existent folder (`dist`, etc.).
 
 ## Deploy on Vercel
 
@@ -85,7 +101,9 @@ To rebuild that file after upgrading the `qrcode` dependency: **`npm run vendor:
 
 ## QR code
 
-Use any QR generator with your **production URL** as the payload (same link you put in wallet/pass apps). High contrast and short URLs scan most reliably.
+Use **`https://…your-deployment…`** (the **QR landing page**) in wallet/pass apps or printed stickers — **`/`**. That page shows only the QR pointing to **`https://…/card`**.
+
+Or generate a standalone QR elsewhere with **`/card`** as the payload if you want to skip the “QR on QR” landing.
 
 ## Wallet / pass apps
 

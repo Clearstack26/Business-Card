@@ -2,86 +2,233 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <script>
-      if (new URLSearchParams(window.location.search).get("preview") === "qr") {
-        window.location.replace(new URL("preview.html", window.location.href).href);
-      }
-    </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
+    />
     <meta name="color-scheme" content="light" />
-    <meta name="theme-color" content="#f6f4f0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <title>Business Card - Mathew</title>
-    <meta
-      name="description"
-      content="Mathew Alexander — Founder & CEO, ClearStack Digital. Website, LinkedIn, book a call."
-    />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Business Card - Mathew" />
-    <meta
-      property="og:description"
-      content="Mathew Alexander — Founder & CEO, ClearStack Digital."
-    />
-    <meta property="og:image" content="/headshot.png" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Business Card - Mathew" />
-    <meta
-      name="twitter:description"
-      content="Mathew Alexander — Founder & CEO, ClearStack Digital."
-    />
-    <meta name="twitter:image" content="/headshot.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/clearstack-logo.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="/styles.css" />
+    <title>Scan</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html {
+        height: 100%;
+        overflow: hidden;
+        background: #ffffff;
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        min-height: 100%;
+        min-height: 100dvh;
+        overflow: hidden;
+        touch-action: manipulation;
+        background: #ffffff;
+        display: grid;
+        place-items: center;
+        padding: max(0.75rem, env(safe-area-inset-top))
+          max(0.75rem, env(safe-area-inset-right))
+          max(0.75rem, env(safe-area-inset-bottom))
+          max(0.75rem, env(safe-area-inset-left));
+      }
+      #wrap {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: min(100dvh, 100vh);
+        max-height: 100dvh;
+      }
+      canvas#qr {
+        display: block;
+        max-width: 100%;
+        max-height: min(92dvh, 92vh);
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+      .err {
+        font: 500 0.9rem/1.4 system-ui, sans-serif;
+        color: #5c5668;
+        max-width: 20rem;
+        text-align: center;
+        padding: 1rem;
+      }
+      a.visually-hidden:focus {
+        position: fixed;
+        left: 0.5rem;
+        top: 0.5rem;
+        clip: auto;
+        width: auto;
+        height: auto;
+        padding: 0.35rem 0.6rem;
+        background: #fff;
+        border: 1px solid #ccc;
+        z-index: 10;
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+    </style>
   </head>
   <body>
-    <a class="skip-link" href="#main">Skip to content</a>
-    <div id="app" class="app is-loading" aria-busy="true">
-      <p class="app__loading">Loading…</p>
+    <a class="visually-hidden" href="/card">Full business card</a>
+    <div id="wrap">
+      <canvas
+        id="qr"
+        role="img"
+        aria-label="QR code — opens your digital business card"
+      ></canvas>
+      <p id="err" class="err" hidden></p>
     </div>
-    <template id="card-template">
-      <main id="main" class="card" tabindex="-1">
-        <header class="card__hero">
-          <picture>
-            <img
-              class="card__photo"
-              src=""
-              alt=""
-              width="960"
-              height="1200"
-              decoding="async"
-              fetchpriority="high"
-            />
-          </picture>
-        </header>
-        <div class="card__body">
-          <div class="card__identity">
-            <div class="card__logo-wrap">
-              <img class="card__logo" src="" alt="" width="96" height="96" decoding="async" />
-            </div>
-            <p class="card__name" data-field="name"></p>
-            <p class="card__role">
-              <span data-field="title"></span>
-              <span class="card__org" data-field="organization"></span>
-            </p>
-          </div>
-          <nav class="card__nav" aria-label="Links and contact actions">
-            <ul class="link-list" data-mount="links"></ul>
-          </nav>
-          <p class="card__footnote">
-            Scan opens this card — save the link or revisit anytime.
-          </p>
-        </div>
-      </main>
-    </template>
-    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
-    <script src="/main.js" type="module"></script>
+    <script src="/vendor/qrcode.min.js"></script>
+    <script>
+      (function () {
+        var canvas = document.getElementById("qr");
+        var errEl = document.getElementById("err");
+
+        function showErr(msg) {
+          canvas.hidden = true;
+          errEl.hidden = false;
+          errEl.textContent = msg;
+        }
+
+        function normalizePath(p) {
+          var path = String(p || "/card").trim() || "/card";
+          if (!path.startsWith("/")) path = "/" + path;
+          return path;
+        }
+
+        /** URL encoded in QR: production card page (never this QR page, to avoid a loop). */
+        function resolveScanTargetUrl(cfg) {
+          var cardPath = normalizePath(cfg && cfg.cardPath);
+          var raw = String((cfg && cfg.baseUrl) || "").trim();
+          var placeholder = "your-card.vercel.app";
+          var baseOrigin;
+          if (raw && raw.indexOf(placeholder) === -1) {
+            try {
+              baseOrigin = raw.replace(/\/$/, "");
+            } catch {
+              baseOrigin = window.location.origin;
+            }
+          } else {
+            baseOrigin = window.location.origin;
+          }
+          return baseOrigin + cardPath;
+        }
+
+        function loadConfig() {
+          return fetch("/site-config.json", { cache: "no-store" })
+            .then(function (r) {
+              if (!r.ok) throw new Error("config");
+              return r.json();
+            })
+            .catch(function () {
+              return { cardPath: "/card", baseUrl: "" };
+            });
+        }
+
+        function qrColors() {
+          return { dark: "#000000", light: "#ffffff" };
+        }
+
+        function viewportSize() {
+          if (window.visualViewport) {
+            return {
+              w: window.visualViewport.width,
+              h: window.visualViewport.height,
+            };
+          }
+          return { w: window.innerWidth, h: window.innerHeight };
+        }
+
+        function qrCssPixelSize() {
+          var v = viewportSize();
+          var edge = 16;
+          var usableW = v.w - edge * 2;
+          var usableH = v.h - edge * 2;
+          var side = Math.floor(Math.min(usableW, usableH) * 0.96);
+          return Math.max(200, Math.min(side, 580));
+        }
+
+        function draw(url) {
+          if (typeof QRCode === "undefined" || !QRCode.toCanvas) {
+            showErr("QR library failed to load. Refresh the page.");
+            return;
+          }
+          canvas.hidden = false;
+          errEl.hidden = true;
+
+          var colors = qrColors();
+          var cssSize = qrCssPixelSize();
+          var dpr = Math.min(window.devicePixelRatio || 1, 3);
+          var genSize = Math.round(cssSize * dpr);
+
+          QRCode.toCanvas(
+            canvas,
+            url,
+            {
+              width: genSize,
+              margin: 3,
+              errorCorrectionLevel: "M",
+              color: { dark: colors.dark, light: colors.light },
+            },
+            function (e) {
+              if (e) {
+                showErr("Could not create QR code.");
+                return;
+              }
+              canvas.style.width = cssSize + "px";
+              canvas.style.height = cssSize + "px";
+              canvas.setAttribute(
+                "title",
+                "Opens: " + url + " — scan with your camera."
+              );
+            }
+          );
+        }
+
+        function run() {
+          loadConfig().then(function (cfg) {
+            draw(resolveScanTargetUrl(cfg));
+          });
+        }
+
+        run();
+
+        var resizeTimer;
+        window.addEventListener("resize", function () {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(run, 100);
+        });
+
+        window.addEventListener("orientationchange", function () {
+          setTimeout(run, 250);
+        });
+
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener("resize", function () {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(run, 80);
+          });
+        }
+      })();
+    </script>
   </body>
 </html>

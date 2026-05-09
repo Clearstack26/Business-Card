@@ -251,6 +251,13 @@ function filterLinks(cfg) {
   });
 }
 
+function canonicalCardUrl(cfg) {
+  const base = metaBaseUrl(cfg).replace(/\/$/, "");
+  let path = String(cfg.cardPath || "/card").trim() || "/card";
+  if (!path.startsWith("/")) path = "/" + path;
+  return `${base}${path}`;
+}
+
 function setMeta(cfg) {
   const base = metaBaseUrl(cfg);
   const pageTitle =
@@ -265,11 +272,12 @@ function setMeta(cfg) {
   };
 
   const photoAbs = cfg.photo.startsWith("http") ? cfg.photo : absoluteUrl(base, cfg.photo);
+  const shareUrl = canonicalCardUrl(cfg);
 
   set('meta[name="description"]', "content", desc);
   set('meta[property="og:title"]', "content", pageTitle);
   set('meta[property="og:description"]', "content", desc);
-  set('meta[property="og:url"]', "content", `${base}/`);
+  set('meta[property="og:url"]', "content", shareUrl);
   set('meta[property="og:image"]', "content", photoAbs);
   set('meta[name="twitter:title"]', "content", pageTitle);
   set('meta[name="twitter:description"]', "content", desc);

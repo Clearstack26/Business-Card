@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f6f4f0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <title>Business Card - Mathew</title>
+    <meta
+      name="description"
+      content="Mathew Alexander — Founder & CEO, ClearStack Digital. Website, LinkedIn, book a call."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Business Card - Mathew" />
+    <meta
+      property="og:description"
+      content="Mathew Alexander — Founder & CEO, ClearStack Digital."
+    />
+    <meta property="og:image" content="/headshot.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Business Card - Mathew" />
+    <meta
+      name="twitter:description"
+      content="Mathew Alexander — Founder & CEO, ClearStack Digital."
+    />
+    <meta name="twitter:image" content="/headshot.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/clearstack-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div id="app" class="app is-loading" aria-busy="true">
+      <p class="app__loading">Loading…</p>
+    </div>
+    <template id="card-template">
+      <main id="main" class="card" tabindex="-1">
+        <header class="card__hero">
+          <picture>
+            <img
+              class="card__photo"
+              src=""
+              alt=""
+              width="960"
+              height="1200"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </picture>
+        </header>
+        <div class="card__body">
+          <div class="card__identity">
+            <div class="card__logo-wrap">
+              <img class="card__logo" src="" alt="" width="96" height="96" decoding="async" />
+            </div>
+            <p class="card__name" data-field="name"></p>
+            <p class="card__role">
+              <span data-field="title"></span>
+              <span class="card__org" data-field="organization"></span>
+            </p>
+          </div>
+          <nav class="card__nav" aria-label="Links and contact actions">
+            <ul class="link-list" data-mount="links"></ul>
+          </nav>
+          <p class="card__footnote">
+            Share your <a href="/" class="card__footnote-link">QR page</a> for an easy scan.
+          </p>
+        </div>
+      </main>
+    </template>
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+    <script src="/main.js" type="module"></script>
+  </body>
+</html>
