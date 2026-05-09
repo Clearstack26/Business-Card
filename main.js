@@ -50,6 +50,65 @@ function bookUrlFromLinks(links) {
   );
 }
 
+function canonicalCardUrl(cfg) {
+  const base = metaBaseUrl(cfg).replace(/\/$/, "");
+  let path = String(cfg.cardPath || "/card").trim() || "/card";
+  if (!path.startsWith("/")) path = "/" + path;
+  return `${base}${path}`;
+}
+
+/** Plaintext fallback when file share isn't available — good for Messages, partial manual add */
+function buildContactDigestText(cfg) {
+  const lines = [];
+  const contact = cfg.contact || {};
+  const links = cfg.links || [];
+  const name = String(cfg.name || "").trim();
+  if (name) lines.push(name);
+  if (cfg.title && cfg.organization) {
+    lines.push(`${cfg.title} · ${cfg.organization}`);
+  } else if (cfg.title) {
+    lines.push(cfg.title);
+  } else if (cfg.organization) {
+    lines.push(cfg.organization);
+  }
+  const tel = String(contact.phone || "").trim();
+  if (tel) lines.push(`Phone: ${tel}`);
+  const email = String(contact.email || "").trim();
+  if (email) lines.push(`Email: ${email}`);
+  const website =
+    String(contact.website || "").trim() || linkUrlById(links, "website");
+  if (website) lines.push(`Website: ${website}`);
+  const linkedin = linkUrlById(links, "linkedin");
+  if (linkedin) lines.push(`LinkedIn: ${linkedin}`);
+  const book = bookUrlFromLinks(links);
+  if (book) lines.push(`Book a call: ${book}`);
+  const note = String(contact.note || "").trim();
+  if (note) lines.push(note);
+  lines.push("");
+  lines.push(`Digital card: ${canonicalCardUrl(cfg)}`);
+  return lines.join("\n").trimEnd();
+}
+
+/**
+ * Opens share sheet with a text digest after vCard file share couldn't run / was unsupported.
+ * @returns {Promise<boolean>} true when share completed (not aborted)
+ */
+async function tryShareContactDigest(cfg) {
+  if (!navigator.share) return false;
+  const text = buildContactDigestText(cfg);
+  if (!text.trim()) return false;
+  try {
+    await navigator.share({
+      title: `Add ${String(cfg.name || "Contact").trim()} to Contacts`,
+      text,
+    });
+    return true;
+  } catch (e) {
+    if (e && e.name === "AbortError") return false;
+    return false;
+  }
+}
+
 function escapeVCardValue(str) {
   return String(str || "")
     .replace(/\\/g, "\\\\")
@@ -222,8 +281,8 @@ async function shareVCardBlob(blob, filename, displayName) {
   try {
     await navigator.share({
       files: [file],
-      title: `Save ${displayName}`,
-      text: `Add ${displayName} to Contacts`,
+      title: `Add ${displayName} to Contacts`,
+      text: `${displayName} — open in Contacts to save`,
     });
     return "ok";
   } catch (e) {
@@ -237,10 +296,10 @@ function writeVcardPreparingPlaceholder(win) {
   if (!win || win.closed) return;
   try {
     win.document.open();
-    win.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,color-scheme=light"/><meta name="theme-color" content="#f4f2ed"/><title>Contact card</title><style>
+    win.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,color-scheme=light"/><meta name="theme-color" content="#f4f2ed"/><title>Add to Contacts</title><style>
 body{font-family:system-ui,-apple-system,sans-serif;margin:0;min-height:100dvh;display:grid;place-items:center;background:#f4f2ed;color:#4a4456;text-align:center;padding:1.5rem;box-sizing:border-box}
 p{max-width:18rem;line-height:1.5;margin:0;font-size:15px}
-strong{color:#0f0e14;font-weight:600}</style></head><body><p><strong>Preparing your contact card…</strong><br/>You can leave this tab open.</p></body></html>`);
+strong{color:#0f0e14;font-weight:600}</style></head><body><p><strong>Opening Contacts save…</strong><br/>You can leave this tab open.</p></body></html>`);
     win.document.close();
   } catch {
     /* about:blank may be restricted on some browsers */
@@ -268,6 +327,9 @@ async function shareVCardFromEmbedText(cfg, textEmbed, displayName) {
       /* fall through */
     }
   }
+
+  if (await tryShareContactDigest(cfg)) return "ok";
+
   return "skip";
 }
 
@@ -333,7 +395,7 @@ async function deliverEmbedVCard(cfg, textEmbed, reservedWindow, opts) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  showToast("Open the file, then tap Add to Contacts", 5200);
+  showToast("Open with Contacts, then tap Save", 5200);
   setTimeout(() => URL.revokeObjectURL(objectUrl), 2500);
 }
 
@@ -384,8 +446,8 @@ function openVcardModal(cfg, focusSource) {
   const nm = String(cfg?.name ?? "").trim();
   if (desc) {
     desc.textContent = nm
-      ? `Allow ${nm}'s contact card to be saved on this device?`
-      : `Allow this contact card to be saved on this device?`;
+      ? `${nm}: Approve to add them to your Contacts — your phone will ask once to confirm.`
+      : `Approve to add this profile to Contacts — your phone will ask once to confirm.`;
   }
 
   setVcardApproveState("loading");
@@ -488,14 +550,14 @@ async function onVcardApprove() {
         : buildVCardPayload(cfg, { photoMode: "embed" }));
     } catch {
       if (approveBtn) setVcardApproveState("error");
-      showToast("Could not prepare contact card — tap Try again");
+      showToast("Could not load contact — tap Try again");
       return;
     }
     if (approveBtn) setVcardApproveState("ready");
   }
 
   if (isLikelyInAppBrowser()) {
-    showToast("Open this page in Safari or Chrome, then use Add to contacts", 5500);
+    showToast("Open this page in Safari or Chrome, then tap Add to contacts", 5500);
   }
 
   closeVcardModal();
@@ -505,11 +567,11 @@ async function onVcardApprove() {
 
   const w = window.open("about:blank", "_blank");
   if (!w) {
-    showToast("Allow pop-ups, then tap Add to contacts and approve again", 5000);
+    showToast("Allow pop‑ups for this site, then try Approve again", 5000);
     try {
       await deliverEmbedVCard(cfg, textEmbed, null, { tryShareFirst: false });
     } catch {
-      showToast("Could not download contact card — try Safari or Chrome");
+      showToast("Could not finish save — open in Safari or Chrome");
     }
     return;
   }
@@ -518,7 +580,7 @@ async function onVcardApprove() {
     await deliverEmbedVCard(cfg, textEmbed, w, { tryShareFirst: false });
   } catch {
     if (!w.closed) w.close();
-    showToast("Could not open contact card — try allowing pop-ups");
+    showToast("Could not finish — allow pop‑ups or try Safari");
   }
 }
 
@@ -550,13 +612,6 @@ function appendLinkContents(textWrap, labelText, optionalDesc) {
     desc.textContent = descStr;
     textWrap.append(desc);
   }
-}
-
-function canonicalCardUrl(cfg) {
-  const base = metaBaseUrl(cfg).replace(/\/$/, "");
-  let path = String(cfg.cardPath || "/card").trim() || "/card";
-  if (!path.startsWith("/")) path = "/" + path;
-  return `${base}${path}`;
 }
 
 function setMeta(cfg) {
@@ -625,7 +680,7 @@ function render(cfg) {
       btn.className = "link-card link-card--compact";
       btn.setAttribute(
         "aria-label",
-        `${link.label}: approve or deny saving this contact card on your device`
+        `${link.label}: approve to add contact to your device`
       );
       btn.addEventListener("click", () => {
         openVcardModal(cfg, btn);

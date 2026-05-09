@@ -86,12 +86,16 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="vcard-modal-title"
-      aria-describedby="vcard-modal-desc"
+      aria-describedby="vcard-modal-desc vcard-modal-hint"
     >
       <div class="vcard-modal__backdrop" data-vcard-dismiss tabindex="-1" aria-hidden="true"></div>
       <div class="vcard-modal__panel">
         <h2 id="vcard-modal-title" class="vcard-modal__title">Add to Contacts?</h2>
         <p id="vcard-modal-desc" class="vcard-modal__body"></p>
+        <p id="vcard-modal-hint" class="vcard-modal__hint">
+          In the share sheet you can tap <strong>Messages</strong>, send to yourself, then open <strong>Add to
+          Contacts</strong> on what you shared.
+        </p>
         <p id="vcard-modal-iab" class="vcard-modal__hint vcard-modal__hint--accent" hidden>
           Open this page in <strong>Safari</strong> or <strong>Chrome</strong> first (⋯ → Open in browser).
         </p>
