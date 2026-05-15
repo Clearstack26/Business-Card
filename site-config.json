@@ -15,11 +15,6 @@
   },
   "links": [
     {
-      "id": "contact",
-      "label": "Add to contacts",
-      "action": "vcard"
-    },
-    {
       "id": "website",
       "label": "Website",
       "url": "https://www.clearstackdigital.com.au/"

@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <title>Scan</title>
+    <title>ClearStack · QR codes</title>
     <style>
       :root {
         color-scheme: light;
@@ -34,24 +34,42 @@
         overflow: hidden;
         touch-action: manipulation;
         background: #ffffff;
-        display: grid;
-        place-items: center;
-        padding: max(0.75rem, env(safe-area-inset-top))
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: #0f0e14;
+        padding: max(0.5rem, env(safe-area-inset-top))
           max(0.75rem, env(safe-area-inset-right))
-          max(0.75rem, env(safe-area-inset-bottom))
+          max(0.5rem, env(safe-area-inset-bottom))
           max(0.75rem, env(safe-area-inset-left));
       }
       #wrap {
-        display: grid;
-        place-items: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(0.65rem, 2.5vh, 1rem);
         width: 100%;
         height: min(100dvh, 100vh);
         max-height: 100dvh;
       }
-      canvas#qr {
+      .qr-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        flex: 0 1 auto;
+        min-height: 0;
+      }
+      .qr-label {
+        margin: 0;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #4a4456;
+      }
+      canvas.qr-canvas {
         display: block;
         max-width: 100%;
-        max-height: min(92dvh, 92vh);
         image-rendering: pixelated;
         image-rendering: crisp-edges;
       }
@@ -90,21 +108,36 @@
   <body>
     <a class="visually-hidden" href="/card">Full business card</a>
     <div id="wrap">
-      <canvas
-        id="qr"
-        role="img"
-        aria-label="QR code — opens your digital business card"
-      ></canvas>
+      <div class="qr-block">
+        <p class="qr-label">View digital card</p>
+        <canvas
+          id="qr-card"
+          class="qr-canvas"
+          role="img"
+          aria-label="QR code: opens digital business card"
+        ></canvas>
+      </div>
+      <div class="qr-block">
+        <p class="qr-label">Save to contacts</p>
+        <canvas
+          id="qr-contact"
+          class="qr-canvas"
+          role="img"
+          aria-label="QR code: save contact to phone"
+        ></canvas>
+      </div>
       <p id="err" class="err" hidden></p>
     </div>
     <script src="/vendor/qrcode.min.js"></script>
     <script>
       (function () {
-        var canvas = document.getElementById("qr");
+        var canvasCard = document.getElementById("qr-card");
+        var canvasContact = document.getElementById("qr-contact");
         var errEl = document.getElementById("err");
 
         function showErr(msg) {
-          canvas.hidden = true;
+          canvasCard.hidden = true;
+          canvasContact.hidden = true;
           errEl.hidden = false;
           errEl.textContent = msg;
         }
@@ -115,33 +148,24 @@
           return path;
         }
 
-        /** URL encoded in QR: production card page (never this QR page, to avoid a loop). */
-        function resolveScanTargetUrl(cfg) {
+        function resolveCardUrl(cfg) {
           var cardPath = normalizePath(cfg && cfg.cardPath);
           var raw = String((cfg && cfg.baseUrl) || "").trim();
           var placeholder = "your-card.vercel.app";
           var baseOrigin;
           if (raw && raw.indexOf(placeholder) === -1) {
-            try {
-              baseOrigin = raw.replace(/\/$/, "");
-            } catch {
-              baseOrigin = window.location.origin;
-            }
+            baseOrigin = raw.replace(/\/$/, "");
           } else {
             baseOrigin = window.location.origin;
           }
           return baseOrigin + cardPath;
         }
 
-        function loadConfig() {
-          return fetch("/site-config.json", { cache: "no-store" })
-            .then(function (r) {
-              if (!r.ok) throw new Error("config");
-              return r.json();
-            })
-            .catch(function () {
-              return { cardPath: "/card", baseUrl: "" };
-            });
+        function loadJson(url) {
+          return fetch(url, { cache: "no-store" }).then(function (r) {
+            if (!r.ok) throw new Error(url);
+            return r.json();
+          });
         }
 
         function qrColors() {
@@ -160,73 +184,90 @@
 
         function qrCssPixelSize() {
           var v = viewportSize();
-          var edge = 16;
+          var edge = 12;
           var usableW = v.w - edge * 2;
           var usableH = v.h - edge * 2;
-          var side = Math.floor(Math.min(usableW, usableH) * 0.96);
-          return Math.max(200, Math.min(side, 580));
+          var perQr = usableH * 0.38;
+          var side = Math.floor(Math.min(usableW, perQr) * 0.94);
+          return Math.max(128, Math.min(side, 280));
         }
 
-        function draw(url) {
-          if (typeof QRCode === "undefined" || !QRCode.toCanvas) {
-            showErr("QR library failed to load. Refresh the page.");
-            return;
-          }
-          canvas.hidden = false;
-          errEl.hidden = true;
-
-          var colors = qrColors();
-          var cssSize = qrCssPixelSize();
-          var dpr = Math.min(window.devicePixelRatio || 1, 3);
-          var genSize = Math.round(cssSize * dpr);
-
-          QRCode.toCanvas(
-            canvas,
-            url,
-            {
-              width: genSize,
-              margin: 3,
-              errorCorrectionLevel: "M",
-              color: { dark: colors.dark, light: colors.light },
-            },
-            function (e) {
-              if (e) {
-                showErr("Could not create QR code.");
-                return;
-              }
-              canvas.style.width = cssSize + "px";
-              canvas.style.height = cssSize + "px";
-              canvas.setAttribute(
-                "title",
-                "Opens: " + url + " — scan with your camera."
-              );
+        function drawCanvas(canvas, payload, titleAttr) {
+          return new Promise(function (resolve, reject) {
+            if (typeof QRCode === "undefined" || !QRCode.toCanvas) {
+              reject(new Error("QR library"));
+              return;
             }
-          );
+            var colors = qrColors();
+            var cssSize = qrCssPixelSize();
+            var dpr = Math.min(window.devicePixelRatio || 1, 3);
+            var genSize = Math.round(cssSize * dpr);
+
+            QRCode.toCanvas(
+              canvas,
+              payload,
+              {
+                width: genSize,
+                margin: 2,
+                errorCorrectionLevel: "M",
+                color: { dark: colors.dark, light: colors.light },
+              },
+              function (e) {
+                if (e) {
+                  reject(e);
+                  return;
+                }
+                canvas.hidden = false;
+                canvas.style.width = cssSize + "px";
+                canvas.style.height = cssSize + "px";
+                if (titleAttr) canvas.setAttribute("title", titleAttr);
+                resolve();
+              }
+            );
+          });
         }
 
         function run() {
-          loadConfig().then(function (cfg) {
-            draw(resolveScanTargetUrl(cfg));
-          });
+          Promise.all([loadJson("/site-config.json"), loadJson("/vcard-qr.json")])
+            .then(function (results) {
+              var cfg = results[0];
+              var vcardQr = results[1];
+              var cardUrl = resolveCardUrl(cfg);
+              var vcardPayload = String(vcardQr.payload || "").trim();
+              if (!vcardPayload) throw new Error("vcard");
+
+              errEl.hidden = true;
+              return Promise.all([
+                drawCanvas(
+                  canvasCard,
+                  cardUrl,
+                  "Opens digital card: " + cardUrl
+                ),
+                drawCanvas(
+                  canvasContact,
+                  vcardPayload,
+                  "Save contact: scan with camera app"
+                ),
+              ]);
+            })
+            .catch(function () {
+              showErr("Could not load QR data. Run npm run build:vcf and refresh.");
+            });
         }
 
         run();
 
         var resizeTimer;
-        window.addEventListener("resize", function () {
+        function onResize() {
           clearTimeout(resizeTimer);
           resizeTimer = setTimeout(run, 100);
-        });
-
+        }
+        window.addEventListener("resize", onResize);
         window.addEventListener("orientationchange", function () {
           setTimeout(run, 250);
         });
-
         if (window.visualViewport) {
-          window.visualViewport.addEventListener("resize", function () {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(run, 80);
-          });
+          window.visualViewport.addEventListener("resize", onResize);
         }
       })();
     </script>

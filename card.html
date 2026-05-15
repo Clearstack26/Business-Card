@@ -78,38 +78,6 @@
         </div>
       </main>
     </template>
-    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
-    <div
-      id="vcard-modal"
-      class="vcard-modal"
-      hidden
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="vcard-modal-title"
-      aria-describedby="vcard-modal-desc vcard-modal-hint"
-    >
-      <div class="vcard-modal__backdrop" data-vcard-dismiss tabindex="-1" aria-hidden="true"></div>
-      <div class="vcard-modal__panel">
-        <h2 id="vcard-modal-title" class="vcard-modal__title">Add to Contacts?</h2>
-        <p id="vcard-modal-desc" class="vcard-modal__body"></p>
-        <p id="vcard-modal-hint" class="vcard-modal__hint">Finish in the share sheet if needed.</p>
-        <p id="vcard-modal-iab" class="vcard-modal__hint vcard-modal__hint--accent" hidden>
-          Open in <strong>Safari</strong> or <strong>Chrome</strong> first.
-        </p>
-        <div class="vcard-modal__actions">
-          <button type="button" class="vcard-modal__btn vcard-modal__btn--ghost" data-vcard-dismiss>
-            Reject
-          </button>
-          <button
-            type="button"
-            class="vcard-modal__btn vcard-modal__btn--primary"
-            id="vcard-modal-approve"
-          >
-            Approve
-          </button>
-        </div>
-      </div>
-    </div>
     <script src="/main.js" type="module"></script>
   </body>
 </html>
