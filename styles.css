@@ -314,55 +314,6 @@ body::before {
   margin-top: 1.35rem;
 }
 
-.card__qr-deck {
-  margin-top: 1.75rem;
-  padding: 1.15rem 1.1rem 1.25rem;
-  background: linear-gradient(
-      180deg,
-      rgba(255, 252, 250, 0.92) 0%,
-      var(--bg-elevated) 100%
-    )
-    padding-box;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset, 0 12px 36px rgba(15, 14, 20, 0.05);
-}
-
-.card__qr-pair {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1.25rem 1.75rem;
-}
-
-.card__qr-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.45rem;
-  min-width: 7.5rem;
-}
-
-.card__qr-label {
-  margin: 0;
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-  text-align: center;
-  max-width: 9rem;
-  line-height: 1.35;
-}
-
-.card__qr-canvas {
-  display: block;
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px rgba(15, 14, 20, 0.06);
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-}
-
 .card__nav {
   margin: 0;
 }

@@ -6,12 +6,10 @@ Static HTML/CSS card meant to open from **QR codes** (printed, on screen, or via
 
 | QR on **`/`** | Label | What happens when scanned |
 | --- | --- | --- |
-| **#1** | View digital card | Opens **`/card`** (photo, links, call, booking) |
+| **#1** | View digital card | Opens **`/card`** (photo, links, booking) |
 | **#2** | Add to contacts | Encodes a **vCard** — camera apps offer **Add Contact** (works offline) |
 
 At events you can say: *“Scan this one to add me to your contacts.”* (point at QR #2.)
-
-The **`/card`** page also shows **both QR codes** at the bottom so a single screenshot works for sharing.
 
 After you change [`site-config.json`](site-config.json), run:
 
@@ -39,12 +37,11 @@ Edit **[site-config.json](site-config.json)**:
 | `cardPath` | Path for QR #1 (default **`/card`**). |
 | `name`, `title`, `organization` | Shown on card and in vCard. |
 | `photo`, `logo` | Asset paths. |
-| `contact` | Phone, website, note — used in vCard and for **Call** on the card (optional `email`). |
+| `contact` | Phone, website, note — used in the **vCard** (contact QR / `.vcf`). Optional `email` adds an **Email** row on the card if set. |
 | `links` | Website, LinkedIn, book a call (`url` entries only). |
 
 ### Card links
 
-- **Call** is added automatically from `contact.phone` when set.
 - **Email** appears only if `contact.email` is set in config.
 - Normal links use `"url"` and optional `"description"`.
 

@@ -36,7 +36,6 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
-    <script src="/vendor/qrcode.min.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -72,32 +71,9 @@
           <div class="card__divider" aria-hidden="true"></div>
           <section class="card__connect" aria-labelledby="connect-label">
             <h2 id="connect-label" class="card__nav-kicker">Connect</h2>
-            <nav class="card__nav" aria-label="Links and contact actions">
+            <nav class="card__nav" aria-label="Links">
               <ul class="link-list" data-mount="links"></ul>
             </nav>
-          </section>
-          <section class="card__qr-deck" hidden aria-labelledby="qr-deck-label">
-            <h2 id="qr-deck-label" class="card__nav-kicker">Scan</h2>
-            <div class="card__qr-pair">
-              <div class="card__qr-cell">
-                <p class="card__qr-label">View digital card</p>
-                <canvas
-                  class="card__qr-canvas"
-                  data-qr="card"
-                  role="img"
-                  aria-label="QR code that opens this digital card in the browser"
-                ></canvas>
-              </div>
-              <div class="card__qr-cell">
-                <p class="card__qr-label">Add to contacts</p>
-                <canvas
-                  class="card__qr-canvas"
-                  data-qr="contact"
-                  role="img"
-                  aria-label="QR code that adds this contact to your phone"
-                ></canvas>
-              </div>
-            </div>
           </section>
         </div>
       </main>
