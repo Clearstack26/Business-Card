@@ -118,12 +118,12 @@
         ></canvas>
       </div>
       <div class="qr-block">
-        <p class="qr-label">Save to contacts</p>
+        <p class="qr-label">Add to contacts</p>
         <canvas
           id="qr-contact"
           class="qr-canvas"
           role="img"
-          aria-label="QR code: save contact to phone"
+          aria-label="QR code: add contact to phone"
         ></canvas>
       </div>
       <p id="err" class="err" hidden></p>
@@ -203,13 +203,14 @@
             var dpr = Math.min(window.devicePixelRatio || 1, 3);
             var genSize = Math.round(cssSize * dpr);
 
+            var ecLevel = canvas.id === "qr-contact" ? "H" : "M";
             QRCode.toCanvas(
               canvas,
               payload,
               {
                 width: genSize,
                 margin: 2,
-                errorCorrectionLevel: "M",
+                errorCorrectionLevel: ecLevel,
                 color: { dark: colors.dark, light: colors.light },
               },
               function (e) {
@@ -246,7 +247,7 @@
                 drawCanvas(
                   canvasContact,
                   vcardPayload,
-                  "Save contact: scan with camera app"
+                  "Add to contacts: scan with camera app"
                 ),
               ]);
             })

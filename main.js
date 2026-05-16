@@ -5,6 +5,8 @@ const ICONS = {
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>',
   typeform:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg>',
+  calendar:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M8 14h4"/></svg>',
   phone:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
   email:
@@ -15,7 +17,8 @@ const ICONS = {
 
 function iconFor(id) {
   if (id === "linkedin") return ICONS.linkedin;
-  if (id === "typeform" || id === "book") return ICONS.typeform;
+  if (id === "book") return ICONS.calendar;
+  if (id === "typeform") return ICONS.typeform;
   if (id === "website") return ICONS.website;
   if (id === "call") return ICONS.phone;
   if (id === "email") return ICONS.email;
@@ -84,6 +87,12 @@ function appendLinkContents(textWrap, labelText, optionalDesc) {
   }
 }
 
+function linkPrefersSameTab(link) {
+  const url = String(link.url || "");
+  if (link.id === "book") return true;
+  return /calendly\.com/i.test(url);
+}
+
 function appendLinkRow(linksMount, link, { external }) {
   const li = document.createElement("li");
   li.className = "link-list__item";
@@ -92,7 +101,8 @@ function appendLinkRow(linksMount, link, { external }) {
   const a = document.createElement("a");
   a.className = desc ? "link-card" : "link-card link-card--compact";
   a.href = link.url;
-  if (external) {
+  const opensNewTab = external && !linkPrefersSameTab(link);
+  if (opensNewTab) {
     a.target = "_blank";
     a.rel = "noopener noreferrer";
     a.setAttribute(
@@ -100,7 +110,10 @@ function appendLinkRow(linksMount, link, { external }) {
       desc ? `${link.label}: ${desc} (opens in new tab)` : `${link.label} (opens in new tab)`
     );
   } else {
-    a.setAttribute("aria-label", link.label);
+    a.setAttribute(
+      "aria-label",
+      desc ? `${link.label}: ${desc}` : link.label
+    );
   }
 
   const text = document.createElement("div");
@@ -172,7 +185,7 @@ function render(cfg) {
   const configLinks = (cfg.links || []).filter(
     (link) => link.url && link.action !== "vcard" && link.action !== "copy-email"
   );
-  const allLinks = [...contactLinks, ...configLinks];
+  const allLinks = [...configLinks, ...contactLinks];
 
   for (const link of allLinks) {
     const external = link.id !== "call" && link.id !== "email";
@@ -185,6 +198,63 @@ function render(cfg) {
   mount.removeAttribute("aria-busy");
 }
 
+function toCanvasQr(canvas, text, opts) {
+  const QRCode = globalThis.QRCode;
+  return new Promise((resolve, reject) => {
+    if (!QRCode?.toCanvas) {
+      reject(new Error("QRCode"));
+      return;
+    }
+    QRCode.toCanvas(canvas, text, opts, (err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
+
+async function fillCardQrs(cardRoot, cfg) {
+  const deck = cardRoot?.querySelector(".card__qr-deck");
+  if (!deck) return;
+  const QRCode = globalThis.QRCode;
+  if (!QRCode?.toCanvas) {
+    deck.remove();
+    return;
+  }
+  try {
+    const vcardRes = await fetch("/vcard-qr.json", { cache: "no-store" });
+    if (!vcardRes.ok) throw new Error("vcard");
+    const vcardQr = await vcardRes.json();
+    const payload = String(vcardQr.payload || "").trim();
+    if (!payload) throw new Error("empty vcard");
+    const cardUrl = canonicalCardUrl(cfg);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cssPx = 112;
+    const genSize = Math.round(cssPx * dpr);
+    const colors = { dark: "#000000", light: "#ffffff" };
+    const baseOpts = {
+      width: genSize,
+      margin: 2,
+      errorCorrectionLevel: "H",
+      color: { dark: colors.dark, light: colors.light },
+    };
+    const cardCanvas = deck.querySelector('canvas[data-qr="card"]');
+    const contactCanvas = deck.querySelector('canvas[data-qr="contact"]');
+    if (cardCanvas) {
+      await toCanvasQr(cardCanvas, cardUrl, baseOpts);
+      cardCanvas.style.width = `${cssPx}px`;
+      cardCanvas.style.height = `${cssPx}px`;
+    }
+    if (contactCanvas) {
+      await toCanvasQr(contactCanvas, payload, baseOpts);
+      contactCanvas.style.width = `${cssPx}px`;
+      contactCanvas.style.height = `${cssPx}px`;
+    }
+    deck.hidden = false;
+  } catch {
+    deck.remove();
+  }
+}
+
 async function init() {
   try {
     const res = await fetch("/site-config.json", { cache: "no-store" });
@@ -192,6 +262,8 @@ async function init() {
     const cfg = await res.json();
     setMeta(cfg);
     render(cfg);
+    const cardRoot = document.querySelector("#app .card");
+    if (cardRoot) await fillCardQrs(cardRoot, cfg);
   } catch (e) {
     const mount = document.getElementById("app");
     if (mount) {
