@@ -1,0 +1,111 @@
+- generic [active] [ref=e1]:
+  - button "Go back":
+    - img
+  - generic [ref=e2]:
+    - main [ref=e3]:
+      - heading "ORBIT" [level=1] [ref=e5]
+      - generic [ref=e11]:
+        - paragraph [ref=e12]: Turn every conversation into momentum.
+        - paragraph [ref=e13]: Real relationships. Real follow-through. For conferences, meetups, and every room where connections matter.
+        - button "See how Orbit works" [ref=e14] [cursor=pointer]:
+          - text: See how it works
+          - img [ref=e15]
+      - paragraph [ref=e17]: Coming soon · iOS & Android
+    - generic "The problem Orbit solves":
+      - generic:
+        - paragraph: After every conversation
+        - generic:
+          - paragraph: The card goes in your pocket.
+          - paragraph: By tomorrow, it's all gone, life takes over.
+        - generic:
+          - paragraph: Sound familiar?
+          - generic:
+            - generic:
+              - generic: 01 · Cards
+              - paragraph: You mean to follow up. The card is in your pocket, then it is gone before you write anything down.
+            - generic:
+              - generic: 02 · Memory
+              - paragraph: Monday arrives and you cannot recall their role, company, or what you actually discussed.
+            - generic:
+              - generic: 03 · Scattered
+              - paragraph: Names end up across notes, photos, and messages. Nothing ties them to the event or the next step.
+            - generic:
+              - generic: 04 · Follow-Through
+              - paragraph: You are running a business. Without a system, Friday's contacts never get a Monday follow-up.
+            - generic:
+              - generic: 05 · Your Time
+              - paragraph: You invested in the event. Without follow-through, those conversations never turn into growth.
+        - generic:
+          - generic "Slide 1 of 2":
+            - button "Slide 1"
+            - button "Slide 2"
+          - button "The solution":
+            - text: The solution
+            - img
+    - generic "How Orbit solves it":
+      - generic:
+        - paragraph: ORBIT
+        - heading "Everything in one place." [level=2]
+        - paragraph: Scan their card or record a thirty-second voice note. One place for every contact, every event, every follow-up.
+        - generic:
+          - generic:
+            - generic: "01"
+            - generic:
+              - strong: Scan any card
+              - generic: At the event or at home with your stack of business cards. Simply scan. Orbit reads the details and builds a contact profile in seconds. No typing, no losing details.
+          - generic:
+            - generic: "02"
+            - generic:
+              - strong: Record a quick voice note
+              - generic: At the event or when you get home, record for thirty seconds. Say their name, role, and what you talked about. Orbit builds their profile from your voice. Already scanned their card? Add the note straight onto their profile.
+          - generic:
+            - generic: "03"
+            - generic:
+              - strong: Every contact, tagged to the event
+              - generic: Orbit organises everyone you met by event. When you save a note, choose which event it belongs to. Find anyone from any event in seconds. No more scrolling through notes, no more guessing who was who.
+          - generic:
+            - generic: "04"
+            - generic:
+              - strong: Orbit keeps you accountable
+              - generic: When you create an event, set your goal. Want to follow up with 10 people? Orbit tracks every one. It pings you when you are halfway there, flags who you have not reached out to yet, and nudges you when a day goes by without a follow-up. When someone replies, you get a ping so you never miss the moment. Orbit drafts a personalised message using your notes in your own tone. You set the goal. Orbit makes sure you hit it.
+          - generic:
+            - generic: "05"
+            - generic:
+              - strong: Share your card. Go digital.
+              - generic: Your links, website, and socials all in one place. Add it to Apple Wallet or Google Wallet. They point their camera, your full profile lands on their phone instantly. No swapping phones, no friction. And long after the event ends, everything is still right there waiting for them.
+        - paragraph: One app. Every connection. Nothing lost.
+        - generic:
+          - generic "Slide 2 of 2":
+            - button "Slide 1"
+            - button "Slide 2"
+          - button "Get early access":
+            - text: Get early access
+            - img
+    - generic "Waitlist signup form":
+      - generic:
+        - generic:
+          - img "Orbit"
+        - heading "Secure your spot." [level=1]
+        - paragraph: Be first to try Orbit. Early access for anyone who meets people at events and wants better follow-through.
+        - generic:
+          - generic:
+            - form "Waitlist signup":
+              - generic:
+                - generic: First name
+                - textbox "First name":
+                  - /placeholder: Your name
+              - generic:
+                - generic: Email address
+                - textbox "Email address":
+                  - /placeholder: you@example.com
+              - button "Join the waitlist":
+                - generic: Join the waitlist
+              - paragraph: Capture contacts, remember context, and follow up with confidence.
+        - paragraph: No spam. Unsubscribe any time.
+    - status "Successfully joined waitlist":
+      - generic:
+        - generic:
+          - img
+        - heading "Welcome," [level=2]: Welcome,
+        - paragraph: You are on the list.
+        - paragraph: We will be in touch personally when Orbit is ready for early access. Nothing else you need to do right now.
