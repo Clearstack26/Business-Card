@@ -11,6 +11,12 @@ const ICONS = {
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>',
   external:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>',
+  star:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+  trophy:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M5 5H3v1a4 4 0 0 0 4 4"/><path d="M19 5h2v1a4 4 0 0 1-4 4"/></svg>',
+  layers:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12.83 2.18 8 4.66a1 1 0 0 1 0 1.74l-8 4.66a2 2 0 0 1-2 0l-8-4.66a1 1 0 0 1 0-1.74l8-4.66a2 2 0 0 1 2 0z"/><path d="m22 12.65-8 4.66a2 2 0 0 1-2 0l-8-4.66"/><path d="m22 17.65-8 4.66a2 2 0 0 1-2 0l-8-4.66"/></svg>',
 };
 
 function iconFor(id) {
@@ -116,6 +122,126 @@ function appendLinkRow(linksMount, link, { external }) {
   linksMount.append(li);
 }
 
+function trustBadgeAria(badge) {
+  const type = String(badge.type || "");
+  if (type === "stars") {
+    return `${badge.stars || 5} star Google reviews`;
+  }
+  if (type === "awwwards") {
+    return `${badge.count || 3} Awwwards Site of the Day wins`;
+  }
+  if (type === "metric") {
+    return `${badge.value || ""} ${badge.label || "metric"}`.trim();
+  }
+  return badge.label || "Credential";
+}
+
+function trustBadgeContent(badge) {
+  const type = String(badge.type || "");
+  const wrap = document.createElement("div");
+  wrap.className = "trust-ring__content";
+
+  if (type === "stars") {
+    wrap.classList.add("trust-ring__content--stars");
+    const count = Number(badge.stars) || 5;
+    const row = document.createElement("div");
+    row.className = "trust-stars";
+    row.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < count; i += 1) {
+      const star = document.createElement("span");
+      star.className = "trust-stars__item";
+      star.style.setProperty("--star-i", String(i));
+      star.innerHTML = ICONS.star;
+      row.append(star);
+    }
+    wrap.append(row);
+    return wrap;
+  }
+
+  if (type === "awwwards") {
+    wrap.classList.add("trust-ring__content--awwwards");
+    const count = document.createElement("span");
+    count.className = "trust-awwwards__count";
+    count.textContent = `${badge.count || 3}×`;
+    const mark = document.createElement("span");
+    mark.className = "trust-awwwards__mark";
+    mark.innerHTML = ICONS.trophy;
+    wrap.append(count, mark);
+    return wrap;
+  }
+
+  if (type === "metric") {
+    wrap.classList.add("trust-ring__content--metric");
+    const value = document.createElement("span");
+    value.className = "trust-metric__value";
+    value.textContent = String(badge.value || "");
+    wrap.append(value);
+    return wrap;
+  }
+
+  const fallback = document.createElement("span");
+  fallback.className = "trust-metric__value";
+  fallback.textContent = badge.label || "";
+  wrap.append(fallback);
+  return wrap;
+}
+
+function renderTrustStrip(cfg, mount) {
+  if (!mount) return;
+
+  const badges = Array.isArray(cfg.trustBadges) ? cfg.trustBadges : [];
+  mount.innerHTML = "";
+
+  if (!badges.length) {
+    mount.hidden = true;
+    return;
+  }
+
+  mount.hidden = false;
+  const list = document.createElement("ul");
+  list.className = "trust-strip__list";
+
+  badges.forEach((badge, index) => {
+    const item = document.createElement("li");
+    item.className = "trust-strip__item";
+
+    const ring = document.createElement("button");
+    ring.type = "button";
+    ring.className = "trust-ring";
+    ring.style.setProperty("--trust-i", String(index));
+    ring.setAttribute("aria-label", trustBadgeAria(badge));
+
+    const sync = document.createElement("span");
+    sync.className = "trust-ring__sync";
+    sync.setAttribute("aria-hidden", "true");
+
+    const face = document.createElement("span");
+    face.className = "trust-ring__face";
+    face.append(trustBadgeContent(badge));
+
+    ring.append(sync, face);
+
+    const label = document.createElement("span");
+    label.className = "trust-ring__label";
+    label.textContent = String(badge.label || "");
+
+    const sublabel = document.createElement("span");
+    sublabel.className = "trust-ring__sublabel";
+    sublabel.textContent = String(badge.sublabel || "");
+
+    item.append(ring, label, sublabel);
+    list.append(item);
+  });
+
+  mount.append(list);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      mount.classList.add("is-live");
+    });
+  });
+}
+
 function setMeta(cfg) {
   const base = metaBaseUrl(cfg);
   const pageTitle =
@@ -155,6 +281,7 @@ function render(cfg) {
   const titleEl = node.querySelector('[data-field="title"]');
   const orgEl = node.querySelector('[data-field="organization"]');
   const linksMount = node.querySelector("[data-mount='links']");
+  const trustMount = node.querySelector("[data-mount='trust']");
 
   photo.src = cfg.photo.startsWith("http") ? cfg.photo : cfg.photo;
   photo.alt = `Portrait of ${cfg.name}`;
@@ -178,6 +305,8 @@ function render(cfg) {
     const external = link.id !== "email";
     appendLinkRow(linksMount, link, { external });
   }
+
+  renderTrustStrip(cfg, trustMount);
 
   mount.innerHTML = "";
   mount.append(main);
