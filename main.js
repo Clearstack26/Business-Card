@@ -121,7 +121,7 @@ function setMeta(cfg) {
   const pageTitle =
     String(cfg.documentTitle || "").trim() ||
     `${cfg.name} — ${cfg.organization}`;
-  const desc = `${cfg.name} — ${cfg.title}, ${cfg.organization}. Website, LinkedIn, book a call.`;
+  const desc = `${cfg.name} — ${cfg.title}, ${cfg.organization}. Website and book a call.`;
   document.title = pageTitle;
 
   const set = (sel, attr, val) => {
