@@ -1,4 +1,4 @@
-/* ClearStack digital card — light editorial */
+/* ClearStack digital card - light editorial */
 
 :root {
   --bg: #f4f2ed;
@@ -10,6 +10,11 @@
   --accent-deep: #0f766e;
   --accent-soft: rgba(13, 148, 136, 0.11);
   --accent-glow: rgba(13, 148, 136, 0.18);
+  /* Brighter cyan glow to match site Lighthouse rings */
+  --proof-primary: hsl(185 100% 48%);
+  --proof-primary-soft: hsl(185 100% 48% / 0.18);
+  --proof-primary-deep: hsl(185 100% 40%);
+  --proof-glow: hsl(185 100% 55% / 0.45);
   --ring: rgba(15, 14, 20, 0.07);
   --shadow: 0 4px 8px rgba(15, 14, 20, 0.04), 0 24px 56px rgba(15, 14, 20, 0.07);
   --shadow-identity: 0 1px 0 rgba(255, 255, 255, 0.88) inset,
@@ -310,6 +315,183 @@ body::before {
     );
 }
 
+/* Proof gauges - standalone rings, no enclosing box */
+.card__proof {
+  position: relative;
+  margin-top: 1.35rem;
+  padding: 0.35rem 0 0.15rem;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.proof-gauge {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+  flex: 0 0 auto;
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.proof-gauge.is-ready {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
+}
+
+.proof-gauge__ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+}
+
+.proof-gauge__ring::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    hsl(185 100% 55% / 0.14) 0%,
+    transparent 68%
+  );
+  pointer-events: none;
+}
+
+.proof-gauge__svg {
+  width: 72px;
+  height: 72px;
+  display: block;
+  transform: rotate(-90deg);
+}
+
+.proof-gauge__track {
+  fill: none;
+  stroke: var(--proof-primary-soft);
+  stroke-width: 5;
+}
+
+.proof-gauge__progress {
+  fill: none;
+  stroke: var(--proof-primary);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: var(--circumference);
+  stroke-dashoffset: var(--circumference);
+  filter:
+    drop-shadow(0 0 4px var(--proof-glow))
+    drop-shadow(0 0 10px hsl(185 100% 55% / 0.28));
+  transition: none;
+}
+
+.proof-gauge.is-animated .proof-gauge__progress {
+  transition: stroke-dashoffset 1.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.proof-gauge.is-complete .proof-gauge__progress,
+.proof-gauge.is-instant .proof-gauge__progress {
+  stroke-dashoffset: var(--offset);
+}
+
+.proof-gauge__value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  padding: 0 0.25rem;
+  pointer-events: none;
+}
+
+.proof-gauge__number {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--proof-primary);
+}
+
+.proof-gauge__star {
+  width: 0.9em;
+  height: 0.9em;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px var(--proof-glow));
+}
+
+.proof-gauge__star svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.proof-gauge__label {
+  margin: 0;
+  max-width: 6.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  color: #000000;
+  line-height: 1.35;
+}
+
+@media (max-width: 380px) {
+  .card__proof {
+    gap: 1.15rem;
+  }
+}
+
+.card__intro {
+  margin-top: 1.25rem;
+  padding: 1.15rem 1.2rem 1.2rem;
+  background: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.97) 0%,
+      var(--bg-elevated) 48%,
+      rgba(254, 252, 250, 0.99) 100%
+    )
+    padding-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-identity);
+}
+
+.card__intro-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.card__intro-body p {
+  margin: 0;
+  font-size: 0.90625rem;
+  line-height: 1.55;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+}
+
+.card__intro-body p:first-child {
+  font-weight: 600;
+}
+
 .card__connect {
   margin-top: 1.35rem;
 }
@@ -322,11 +504,11 @@ body::before {
   margin: 0 0 0.85rem;
   font-family: var(--font-body);
   font-size: 0.6875rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--ink-muted);
-  opacity: 0.9;
+  color: var(--ink);
+  opacity: 1;
   line-height: 1.3;
 }
 
@@ -368,6 +550,22 @@ body::before {
 
 .link-card--compact .link-card__text {
   gap: 0;
+}
+
+.link-card--primary {
+  border-color: rgba(13, 148, 136, 0.28);
+  box-shadow:
+    inset 3px 0 0 0 var(--accent),
+    0 8px 28px rgba(13, 148, 136, 0.12),
+    0 2px 10px rgba(15, 14, 20, 0.04);
+}
+
+.link-card--primary .link-card__label {
+  color: var(--ink);
+}
+
+.link-card--primary:hover {
+  border-color: rgba(13, 148, 136, 0.4);
 }
 
 button.link-card {
@@ -426,7 +624,7 @@ button.link-card {
 
 .link-card__desc {
   font-size: 0.8125rem;
-  color: var(--ink-muted);
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -489,6 +687,17 @@ button.link-card {
 
   .app__loading {
     animation: none;
+  }
+
+  .proof-gauge,
+  .proof-gauge.is-ready {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .proof-gauge.is-animated .proof-gauge__progress {
+    transition: none;
   }
 
   .link-card:hover {

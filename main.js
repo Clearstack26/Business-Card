@@ -13,6 +13,20 @@ const ICONS = {
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>',
 };
 
+/* Port of BusinessCardStats ring math from ClearStack site */
+const RING_SIZE = 72;
+const RING_STROKE = 5;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+let starGradientSeq = 0;
+
+function ratingStarSvg() {
+  starGradientSeq += 1;
+  const gradientId = `bc-star-${starGradientSeq}`;
+  return `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="${gradientId}" x1="12" y1="2" x2="12" y2="22" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="hsl(185 100% 68%)"/><stop offset="45%" stop-color="hsl(185 100% 48%)"/><stop offset="100%" stop-color="hsl(185 100% 38%)"/></linearGradient></defs><path d="M12 2.75l2.18 4.52 4.97.76-3.6 3.38.85 4.94L12 14.9l-4.4 2.45.85-4.94-3.6-3.38 4.97-.76L12 2.75z" fill="url(#${gradientId})"/></svg>`;
+}
+
 function iconFor(id) {
   if (id === "linkedin") return ICONS.linkedin;
   if (id === "book") return ICONS.calendar;
@@ -76,17 +90,32 @@ function appendLinkContents(textWrap, labelText, optionalDesc) {
 
 function linkPrefersSameTab(link) {
   const url = String(link.url || "");
-  if (link.id === "book") return true;
-  return /calendly\.com/i.test(url);
+  if (link.id === "book" || link.id === "typeform") return true;
+  return /calendly\.com|typeform\.com|clearstackdigital\.com\.au\/start-website-build/i.test(
+    url
+  );
 }
 
-function appendLinkRow(linksMount, link, { external }) {
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+function appendLinkRow(linksMount, link, { external, primary }) {
   const li = document.createElement("li");
   li.className = "link-list__item";
   const desc = linkDescription(link);
 
   const a = document.createElement("a");
-  a.className = desc ? "link-card" : "link-card link-card--compact";
+  a.className = [
+    "link-card",
+    desc ? "" : "link-card--compact",
+    primary ? "link-card--primary" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   a.href = link.url;
   const opensNewTab = external && !linkPrefersSameTab(link);
   if (opensNewTab) {
@@ -116,12 +145,180 @@ function appendLinkRow(linksMount, link, { external }) {
   linksMount.append(li);
 }
 
+function ringProgress(item) {
+  if (typeof item.ring === "number" && Number.isFinite(item.ring)) {
+    return Math.min(1, Math.max(0, item.ring));
+  }
+  if (typeof item.value === "number" && Number.isFinite(item.value)) {
+    return Math.min(1, Math.max(0, item.value / 100));
+  }
+  return 1;
+}
+
+function createProofGauge(item, index) {
+  const progress = ringProgress(item);
+  const offset = RING_CIRCUMFERENCE * (1 - progress);
+  const display = String(item.display || item.value || "").trim();
+  const labelText = String(item.label || "");
+
+  const article = document.createElement("article");
+  article.className = "proof-gauge";
+  article.style.setProperty("--circumference", String(RING_CIRCUMFERENCE));
+  article.style.setProperty("--offset", String(offset));
+  article.dataset.proofId = String(item.id || index);
+  article.setAttribute("aria-label", `${labelText}: ${display}`);
+
+  const ring = document.createElement("div");
+  ring.className = "proof-gauge__ring";
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "proof-gauge__svg");
+  svg.setAttribute("width", String(RING_SIZE));
+  svg.setAttribute("height", String(RING_SIZE));
+  svg.setAttribute("viewBox", `0 0 ${RING_SIZE} ${RING_SIZE}`);
+  svg.setAttribute("aria-hidden", "true");
+
+  const cx = RING_SIZE / 2;
+  const cy = RING_SIZE / 2;
+
+  const track = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  track.setAttribute("class", "proof-gauge__track");
+  track.setAttribute("cx", String(cx));
+  track.setAttribute("cy", String(cy));
+  track.setAttribute("r", String(RING_RADIUS));
+
+  const bar = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  bar.setAttribute("class", "proof-gauge__progress");
+  bar.setAttribute("cx", String(cx));
+  bar.setAttribute("cy", String(cy));
+  bar.setAttribute("r", String(RING_RADIUS));
+
+  svg.append(track, bar);
+
+  const valueWrap = document.createElement("div");
+  valueWrap.className = "proof-gauge__value";
+
+  const valueEl = document.createElement("span");
+  valueEl.className = "proof-gauge__number";
+  valueEl.textContent = display;
+  valueWrap.append(valueEl);
+
+  if (item.star) {
+    const star = document.createElement("span");
+    star.className = "proof-gauge__star";
+    star.innerHTML = ratingStarSvg();
+    valueWrap.append(star);
+  }
+
+  ring.append(svg, valueWrap);
+
+  const label = document.createElement("p");
+  label.className = "proof-gauge__label";
+  label.textContent = labelText;
+
+  article.append(ring, label);
+
+  return {
+    el: article,
+    valueEl,
+    item,
+    display,
+    progress,
+  };
+}
+
+function runProofAnimations(gauges) {
+  const reduced = prefersReducedMotion();
+
+  gauges.forEach((gauge, index) => {
+    const { el, valueEl, display } = gauge;
+    valueEl.textContent = display;
+
+    const start = () => {
+      el.classList.add("is-ready");
+
+      if (reduced) {
+        el.classList.add("is-instant", "is-complete");
+        return;
+      }
+
+      el.classList.add("is-animated");
+      requestAnimationFrame(() => {
+        el.classList.add("is-complete");
+      });
+    };
+
+    if (reduced) {
+      start();
+      return;
+    }
+
+    window.setTimeout(start, 90 + index * 160);
+  });
+}
+
+function scrollCardToTop() {
+  if (typeof window === "undefined") return;
+  try {
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+  } catch {
+    /* ignore */
+  }
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
+function renderIntro(node, cfg) {
+  const intro = cfg.intro || {};
+  const bodyMount = node.querySelector("[data-mount='intro']");
+  const section = node.querySelector(".card__intro");
+  if (!bodyMount || !section) return;
+
+  const paragraphs = Array.isArray(intro.paragraphs)
+    ? intro.paragraphs.map((p) => String(p || "").trim()).filter(Boolean)
+    : [];
+
+  if (!paragraphs.length) {
+    section.hidden = true;
+    return;
+  }
+
+  bodyMount.innerHTML = "";
+  for (const text of paragraphs) {
+    const p = document.createElement("p");
+    p.textContent = text;
+    bodyMount.append(p);
+  }
+}
+
+function renderProof(node, cfg) {
+  const mount = node.querySelector("[data-mount='proof']");
+  if (!mount) return [];
+
+  const items = Array.isArray(cfg.proof) ? cfg.proof : [];
+  mount.innerHTML = "";
+
+  if (!items.length) {
+    mount.hidden = true;
+    return [];
+  }
+
+  const gauges = items.map((item, index) => createProofGauge(item, index));
+  for (const gauge of gauges) {
+    mount.append(gauge.el);
+  }
+  return gauges;
+}
+
 function setMeta(cfg) {
   const base = metaBaseUrl(cfg);
   const pageTitle =
     String(cfg.documentTitle || "").trim() ||
-    `${cfg.name} — ${cfg.organization}`;
-  const desc = `${cfg.name} — ${cfg.title}, ${cfg.organization}. Website and book a call.`;
+    `${cfg.name} - ${cfg.organization}`;
+  const desc = `${cfg.name}, ${cfg.title} at ${cfg.organization}. Start a website project or book a call.`;
   document.title = pageTitle;
 
   const set = (sel, attr, val) => {
@@ -166,6 +363,9 @@ function render(cfg) {
   titleEl.textContent = cfg.title;
   orgEl.textContent = cfg.organization;
 
+  renderIntro(node, cfg);
+  const gauges = renderProof(node, cfg);
+
   linksMount.innerHTML = "";
 
   const contactLinks = contactActionLinks(cfg);
@@ -176,16 +376,22 @@ function render(cfg) {
 
   for (const link of allLinks) {
     const external = link.id !== "email";
-    appendLinkRow(linksMount, link, { external });
+    const primary = link.id === "typeform";
+    appendLinkRow(linksMount, link, { external, primary });
   }
 
   mount.innerHTML = "";
   mount.append(main);
   mount.classList.remove("is-loading");
   mount.removeAttribute("aria-busy");
+
+  scrollCardToTop();
+  runProofAnimations(gauges);
+  requestAnimationFrame(scrollCardToTop);
 }
 
 async function init() {
+  scrollCardToTop();
   try {
     const res = await fetch("/site-config.json", { cache: "no-store" });
     if (!res.ok) throw new Error("Config not found");

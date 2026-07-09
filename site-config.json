@@ -12,16 +12,54 @@
     "website": "https://www.clearstackdigital.com.au/",
     "note": "Custom websites for professional services."
   },
+  "intro": {
+    "paragraphs": [
+      "Hey there, thanks for scanning. You're in the right place.",
+      "ClearStack Digital builds modern, luxury websites for every kind of business. Whether your current site is working against you, you're not getting organic leads, or you're ready to look the part online, we can help.",
+      "We've won 3x awards for look and performance. I'd love to hear your situation. Start a project below (about 3 minutes) or book a quick call."
+    ]
+  },
+  "proof": [
+    {
+      "id": "reviews",
+      "label": "Google Reviews",
+      "value": 5,
+      "display": "5.0",
+      "ring": 1,
+      "star": true
+    },
+    {
+      "id": "awards",
+      "label": "Awards",
+      "value": 3,
+      "display": "3x",
+      "ring": 1
+    },
+    {
+      "id": "weeks",
+      "label": "Weeks to Launch",
+      "display": "2-4",
+      "ring": 1
+    }
+  ],
   "links": [
     {
-      "id": "website",
-      "label": "Website",
-      "url": "https://www.clearstackdigital.com.au/"
+      "id": "typeform",
+      "label": "Start website project",
+      "url": "https://www.clearstackdigital.com.au/start-website-build",
+      "description": "Tell us what you need (3 min)"
     },
     {
       "id": "book",
       "label": "Book a call",
-      "url": "https://calendly.com/mathew-clearstackdigital/30min"
+      "url": "https://calendly.com/mathew-clearstackdigital/30min",
+      "description": "Quick chat on Calendly"
+    },
+    {
+      "id": "website",
+      "label": "See our work",
+      "url": "https://www.clearstackdigital.com.au/",
+      "description": "clearstackdigital.com.au"
     }
   ]
 }
