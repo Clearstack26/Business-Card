@@ -14,8 +14,9 @@ const ICONS = {
 };
 
 /* Port of BusinessCardStats ring math from ClearStack site */
-const RING_SIZE = 72;
-const RING_STROKE = 5;
+/* Matches ClearStack PerformanceRing compact: 68px ring, 4px stroke */
+const RING_SIZE = 68;
+const RING_STROKE = 4;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
@@ -271,11 +272,11 @@ function scrollCardToTop() {
   document.body.scrollTop = 0;
 }
 
-function renderIntro(node, cfg) {
+function renderIntro(root, cfg) {
   const intro = cfg.intro || {};
-  const bodyMount = node.querySelector("[data-mount='intro']");
-  const section = node.querySelector(".card__intro");
-  if (!bodyMount || !section) return;
+  const bodyMount = root.querySelector("[data-mount='intro']");
+  const section = root.querySelector(".card__intro");
+  if (!bodyMount || !section) return false;
 
   const paragraphs = Array.isArray(intro.paragraphs)
     ? intro.paragraphs.map((p) => String(p || "").trim()).filter(Boolean)
@@ -283,7 +284,7 @@ function renderIntro(node, cfg) {
 
   if (!paragraphs.length) {
     section.hidden = true;
-    return;
+    return false;
   }
 
   bodyMount.innerHTML = "";
@@ -292,10 +293,11 @@ function renderIntro(node, cfg) {
     p.textContent = text;
     bodyMount.append(p);
   }
+  return true;
 }
 
-function renderProof(node, cfg) {
-  const mount = node.querySelector("[data-mount='proof']");
+function renderProof(root, cfg) {
+  const mount = root.querySelector("[data-mount='proof']");
   if (!mount) return [];
 
   const items = Array.isArray(cfg.proof) ? cfg.proof : [];
@@ -311,6 +313,87 @@ function renderProof(node, cfg) {
     mount.append(gauge.el);
   }
   return gauges;
+}
+
+function continueLabel(cfg) {
+  const label = String(cfg.welcome?.continueLabel || "Continue").trim();
+  return label || "Continue";
+}
+
+/** Curved-arc wipe up — same exit as ClearStack SiteIntroLoader */
+const WIPE_EXIT_MS = 750;
+
+function runCurvedWipeExit(panel, onComplete) {
+  if (!panel) {
+    onComplete?.();
+    return;
+  }
+
+  if (prefersReducedMotion()) {
+    panel.hidden = true;
+    onComplete?.();
+    return;
+  }
+
+  void panel.offsetHeight;
+  panel.classList.add("is-exiting");
+
+  window.setTimeout(() => {
+    panel.hidden = true;
+    panel.classList.remove("is-exiting");
+    onComplete?.();
+  }, WIPE_EXIT_MS);
+}
+
+function preloadCardImages(cardStep) {
+  const photo = cardStep?.querySelector(".card__photo");
+  const logo = cardStep?.querySelector(".card__logo");
+  for (const img of [photo, logo]) {
+    if (img?.src) {
+      const preloader = new Image();
+      preloader.src = img.src;
+    }
+  }
+}
+
+function revealCardStep(welcomeStep, cardStep) {
+  const skipLink = document.querySelector(".skip-link");
+  const continueBtn = welcomeStep.querySelector('[data-action="continue"]');
+
+  if (welcomeStep.classList.contains("is-exiting")) return;
+  if (continueBtn) continueBtn.disabled = true;
+
+  cardStep.hidden = false;
+  cardStep.classList.add("is-visible");
+  scrollCardToTop();
+
+  runCurvedWipeExit(welcomeStep, () => {
+    if (continueBtn) continueBtn.disabled = false;
+    if (skipLink) skipLink.setAttribute("href", "#main");
+    scrollCardToTop();
+    cardStep.focus({ preventScroll: true });
+    requestAnimationFrame(scrollCardToTop);
+  });
+}
+
+function showWelcomeStep(welcomeStep, cardStep, gauges) {
+  preloadCardImages(cardStep);
+  scrollCardToTop();
+  runProofAnimations(gauges);
+  requestAnimationFrame(() => {
+    scrollCardToTop();
+    welcomeStep.focus({ preventScroll: true });
+  });
+}
+
+function wireWelcomeGate(welcomeStep, cardStep, cfg, gauges) {
+  const continueBtn = welcomeStep.querySelector('[data-action="continue"]');
+  if (!continueBtn) return;
+
+  continueBtn.textContent = continueLabel(cfg);
+  continueBtn.addEventListener("click", () => {
+    revealCardStep(welcomeStep, cardStep);
+  });
 }
 
 function setMeta(cfg) {
@@ -345,13 +428,19 @@ function render(cfg) {
   if (!template || !mount) return;
 
   const node = template.content.cloneNode(true);
-  const main = node.querySelector(".card");
-  const photo = node.querySelector(".card__photo");
-  const logo = node.querySelector(".card__logo");
-  const nameEl = node.querySelector('[data-field="name"]');
-  const titleEl = node.querySelector('[data-field="title"]');
-  const orgEl = node.querySelector('[data-field="organization"]');
-  const linksMount = node.querySelector("[data-mount='links']");
+  const welcomeStep = node.querySelector('[data-step="welcome"]');
+  const cardStep = node.querySelector('[data-step="card"]');
+  if (!welcomeStep || !cardStep) return;
+
+  renderIntro(welcomeStep, cfg);
+  const gauges = renderProof(welcomeStep, cfg);
+
+  const photo = cardStep.querySelector(".card__photo");
+  const logo = cardStep.querySelector(".card__logo");
+  const nameEl = cardStep.querySelector('[data-field="name"]');
+  const titleEl = cardStep.querySelector('[data-field="title"]');
+  const orgEl = cardStep.querySelector('[data-field="organization"]');
+  const linksMount = cardStep.querySelector("[data-mount='links']");
 
   photo.src = cfg.photo.startsWith("http") ? cfg.photo : cfg.photo;
   photo.alt = `Portrait of ${cfg.name}`;
@@ -363,9 +452,6 @@ function render(cfg) {
   titleEl.textContent = cfg.title;
   orgEl.textContent = cfg.organization;
 
-  renderIntro(node, cfg);
-  const gauges = renderProof(node, cfg);
-
   linksMount.innerHTML = "";
 
   const contactLinks = contactActionLinks(cfg);
@@ -376,18 +462,22 @@ function render(cfg) {
 
   for (const link of allLinks) {
     const external = link.id !== "email";
-    const primary = link.id === "typeform";
+    const primary = link.id === "book";
     appendLinkRow(linksMount, link, { external, primary });
   }
 
   mount.innerHTML = "";
-  mount.append(main);
+  const stage = node.querySelector(".card-stage");
+  if (stage) {
+    mount.append(stage);
+  } else {
+    mount.append(welcomeStep, cardStep);
+  }
   mount.classList.remove("is-loading");
   mount.removeAttribute("aria-busy");
 
-  scrollCardToTop();
-  runProofAnimations(gauges);
-  requestAnimationFrame(scrollCardToTop);
+  wireWelcomeGate(welcomeStep, cardStep, cfg, gauges);
+  showWelcomeStep(welcomeStep, cardStep, gauges);
 }
 
 async function init() {

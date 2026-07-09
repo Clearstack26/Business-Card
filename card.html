@@ -1,87 +1,211 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
   <head>
+
     <meta charset="utf-8" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="color-scheme" content="light" />
-    <meta name="theme-color" content="#f4f2ed" />
-    <meta name="msapplication-TileColor" content="#f4f2ed" />
+
+    <meta name="color-scheme" content="dark" />
+
+    <meta name="theme-color" content="#0f1218" />
+
+    <meta name="msapplication-TileColor" content="#0f1218" />
+
     <meta name="apple-mobile-web-app-capable" content="yes" />
+
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
     <title>Business Card - Mathew</title>
+
     <meta
+
       name="description"
+
       content="Mathew Alexander, CEO & Head of Development at ClearStack Digital. Start a website project or book a call."
+
     />
+
     <meta property="og:type" content="website" />
+
     <meta property="og:title" content="Business Card - Mathew" />
+
     <meta
+
       property="og:description"
+
       content="Mathew Alexander, CEO & Head of Development at ClearStack Digital."
+
     />
+
     <meta property="og:image" content="/headshot.png" />
+
     <meta name="twitter:card" content="summary_large_image" />
+
     <meta name="twitter:title" content="Business Card - Mathew" />
+
     <meta
+
       name="twitter:description"
+
       content="Mathew Alexander, CEO & Head of Development at ClearStack Digital."
+
     />
+
     <meta name="twitter:image" content="/headshot.png" />
+
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/svg+xml" href="/clearstack-icon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/clearstack-logo.png" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600&display=swap"
+
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap"
+
       rel="stylesheet"
+
     />
+
     <link rel="stylesheet" href="/styles.css" />
+
   </head>
+
   <body>
-    <a class="skip-link" href="#main">Skip to content</a>
+
+    <a class="skip-link" href="#welcome">Skip to content</a>
+
     <div id="app" class="app is-loading" aria-busy="true">
+
       <p class="app__loading">Loading…</p>
+
     </div>
+
     <template id="card-template">
-      <main id="main" class="card" tabindex="-1">
-        <header class="card__hero">
-          <picture>
-            <img
-              class="card__photo"
-              src=""
-              alt=""
-              width="960"
-              height="1200"
-              decoding="async"
-              fetchpriority="high"
-            />
-          </picture>
-        </header>
-        <div class="card__body">
-          <div class="card__identity">
-            <div class="card__logo-wrap">
-              <img class="card__logo" src="" alt="" width="96" height="96" decoding="async" />
-            </div>
-            <p class="card__name" data-field="name"></p>
-            <p class="card__role">
-              <span data-field="title"></span>
-              <span class="card__org" data-field="organization"></span>
-            </p>
-          </div>
-          <div class="card__divider" aria-hidden="true"></div>
-          <section class="card__proof" aria-label="Proof points" data-mount="proof"></section>
-          <section class="card__intro" aria-label="Welcome">
+      <div class="card-stage">
+      <section
+
+        id="welcome"
+
+        class="card-welcome gate-panel"
+
+        data-step="welcome"
+
+        aria-label="Welcome"
+
+        tabindex="-1"
+
+      >
+
+        <div class="card-welcome__inner">
+
+          <section class="card__intro card-welcome__intro" aria-label="Introduction">
+
             <div class="card__intro-body" data-mount="intro"></div>
+
           </section>
-          <section class="card__connect" aria-labelledby="connect-label">
-            <h2 id="connect-label" class="card__nav-kicker">Connect</h2>
-            <nav class="card__nav" aria-label="Links">
-              <ul class="link-list" data-mount="links"></ul>
-            </nav>
-          </section>
+
+          <section
+
+            class="card__proof card-welcome__proof"
+
+            aria-label="Proof points"
+
+            data-mount="proof"
+
+          ></section>
+
+          <button type="button" class="card-welcome__continue" data-action="continue">
+
+            Continue
+
+          </button>
+
         </div>
+
+      </section>
+
+      <main id="main" class="card card-step" data-step="card" hidden tabindex="-1">
+
+        <header class="card__hero">
+
+          <picture>
+
+            <img
+
+              class="card__photo"
+
+              src=""
+
+              alt=""
+
+              width="960"
+
+              height="1200"
+
+              decoding="async"
+
+              fetchpriority="high"
+
+            />
+
+          </picture>
+
+        </header>
+
+        <div class="card__body">
+
+          <div class="card__identity">
+
+            <div class="card__logo-wrap">
+
+              <img class="card__logo" src="" alt="" width="96" height="96" decoding="async" />
+
+            </div>
+
+            <p class="card__name" data-field="name"></p>
+
+            <p class="card__role">
+
+              <span data-field="title"></span>
+
+              <span class="card__org" data-field="organization"></span>
+
+            </p>
+
+          </div>
+
+          <div class="card__divider" aria-hidden="true"></div>
+
+          <section class="card__connect" aria-labelledby="connect-label">
+
+            <h2 id="connect-label" class="card__nav-kicker">Connect</h2>
+
+            <nav class="card__nav" aria-label="Links">
+
+              <ul class="link-list" data-mount="links"></ul>
+
+            </nav>
+
+          </section>
+
+        </div>
+
       </main>
+      </div>
     </template>
+
     <script src="/main.js" type="module"></script>
+
   </body>
+
 </html>
+
