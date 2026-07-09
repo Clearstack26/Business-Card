@@ -1,5 +1,5 @@
 {
-  "payload": "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:urn:business-card:mathew-alexander\r\nREV:20260515000000Z\r\nFN:Mathew Alexander\r\nN:Alexander;Mathew;;;\r\nORG:ClearStack Digital\r\nTITLE:CEO & Head of Development\r\nTEL;TYPE=CELL,VOICE:+61474659401\r\nURL;TYPE=WORK:https://www.clearstackdigital.com.au/\r\nURL;TYPE=Booking:https://calendly.com/mathew-clearstackdigital/30min\r\nNOTE:Custom websites for professional services.\r\nURL;TYPE=DigitalCard:https://your-card.vercel.app/card\r\nEND:VCARD",
+  "payload": "BEGIN:VCARD\r\nVERSION:3.0\r\nUID:urn:business-card:mathew-alexander\r\nREV:20260515000000Z\r\nFN:Mathew Alexander\r\nN:Alexander;Mathew;;;\r\nORG:ClearStack Digital\r\nTITLE:CEO & Head of Development\r\nTEL;TYPE=CELL,VOICE:+61474659401\r\nURL;TYPE=WORK:https://www.clearstackdigital.com.au/\r\nURL;TYPE=Booking:https://calendly.com/mathew-clearstackdigital/30min\r\nNOTE:Custom websites for professional services.\r\nURL;TYPE=DigitalCard:https://business-card-mathew.vercel.app/card\r\nEND:VCARD",
   "filename": "mathew-alexander.vcf",
-  "byteLength": 459
+  "byteLength": 470
 }
