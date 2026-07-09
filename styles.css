@@ -27,23 +27,61 @@
   --accent-glow: hsl(185 100% 55% / 0.28);
   --ring-track: hsl(185 100% 55% / 0.12);
   --ring-stroke: hsl(var(--primary));
-  --glass-border: hsl(0 0% 100% / 0.1);
-  --glass-bg: hsl(220 16% 11% / 0.4);
-  --shadow: 0 4px 30px hsl(185 100% 55% / 0.06);
-  --shadow-identity:
-    0 4px 24px hsl(185 100% 55% / 0.08),
-    inset 0 1px 0 0 hsl(0 0% 100% / 0.06);
+  /*
+    Universal dark frosted glass — ONE look on both screens.
+    Change these tokens only; never style glass panels separately.
+  */
+  --glass-bg: hsl(200 28% 12% / 0.48);
+  --glass-border: hsl(0 0% 100% / 0.12);
+  --glass-blur: 16px;
+  --glass-shadow:
+    0 8px 32px hsl(0 0% 0% / 0.28),
+    0 0 40px hsl(185 100% 55% / 0.12),
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.08);
+  --glass-left: hsl(185 100% 55% / 0.22);
+  /* Aliases kept so older rules still resolve to the same glass */
+  --shadow: var(--glass-shadow);
+  --shadow-identity: var(--glass-shadow);
   --shadow-hero-frame: 0 16px 48px hsl(0 0% 0% / 0.45), 0 0 0 1px hsl(0 0% 100% / 0.06);
-  --radius-lg: 22px;
-  --radius-sm: 14px;
   --font-display: "Fraunces", ui-serif, Georgia, serif;
   --font-body: "Inter", system-ui, -apple-system, sans-serif;
   --font-metric: "Space Grotesk", var(--font-body);
-  /* Comfortable side padding on phones; a bit more on tablets */
-  --space: clamp(1rem, 4.2vw, 2rem);
-  /* Full-bleed on phones + iPads; only capped on large desktops */
+
+  /*
+    Fluid auto-layout scale — phones → tablets only.
+    Everything uses clamp() so dragging preview width reflows continuously
+    (flip phone → iPhone → iPad) with no stepped jumps.
+  */
   --card-max: 100%;
-  --hero-overlap: clamp(2.5rem, 8vw, 3.25rem);
+  --space: clamp(0.85rem, 0.55rem + 2.8vw, 2.25rem);
+  /* Identity card sits deeper into the hero so its top edge lives inside the photo */
+  --hero-overlap: clamp(3.75rem, 2.8rem + 4.5vw, 5.25rem);
+  --radius-lg: clamp(18px, 14px + 1.4vw, 28px);
+  --radius-sm: clamp(12px, 10px + 0.9vw, 18px);
+  --pad-card: clamp(1.05rem, 0.75rem + 1.8vw, 1.85rem);
+  --pad-intro: clamp(1rem, 0.75rem + 1.4vw, 1.5rem);
+  --logo-size: clamp(4.5rem, 3.6rem + 3.6vw, 6.5rem);
+  --name-size: clamp(1.28rem, 0.95rem + 2.6vw, 2.15rem);
+  --title-size: clamp(1rem, 0.88rem + 1.1vw, 1.25rem);
+  --org-size: clamp(0.65rem, 0.58rem + 0.35vw, 0.78rem);
+  --body-size: clamp(0.875rem, 0.8rem + 0.45vw, 1.05rem);
+  --kicker-size: clamp(0.625rem, 0.58rem + 0.25vw, 0.75rem);
+  --link-label: clamp(0.9rem, 0.82rem + 0.45vw, 1.05rem);
+  --link-desc: clamp(0.75rem, 0.7rem + 0.3vw, 0.9rem);
+  --link-min-h: clamp(2.85rem, 2.5rem + 1.2vw, 3.6rem);
+  --link-pad-y: clamp(0.72rem, 0.55rem + 0.7vw, 1.05rem);
+  --link-pad-x: clamp(0.85rem, 0.65rem + 0.9vw, 1.25rem);
+  --link-icon: clamp(2.1rem, 1.85rem + 0.9vw, 2.55rem);
+  --ring-size: clamp(56px, 48px + 3.8vw, 80px);
+  --ring-num: clamp(0.66rem, 0.58rem + 0.45vw, 0.88rem);
+  --ring-label: clamp(0.625rem, 0.55rem + 0.35vw, 0.75rem);
+  --proof-gap: clamp(0.6rem, 0.15rem + 4.5vw, 3.25rem);
+  --section-gap: clamp(1.1rem, 0.85rem + 1.4vw, 1.75rem);
+  /* Hero height grows with width, then soft-caps for tall tablets */
+  --hero-h: min(72svh, clamp(17.5rem, 12rem + 42vw, 34rem));
+  /* Always fill the padded viewport on phones + tablets — no side gutters */
+  --text-measure: 100%;
+
   /* Exact fill for hero corner cutouts + area below hero — must match */
   --surface: hsl(200 32% 11%);
   --surface-glow:
@@ -164,7 +202,10 @@ body {
   }
 }
 
-/* Step 1 — welcome gate (curved wipe exit, same as ClearStack SiteIntroLoader) */
+/*
+  Welcome gate — curved wipe exit identical to ClearStack SiteIntroLoader
+  (the motion that runs when the site loader hits 100%).
+*/
 .card-welcome {
   outline: none;
 }
@@ -182,6 +223,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* Same solid base as SiteIntroLoader */
   background: hsl(220 22% 7.5%);
   transform: translateY(0);
   border-radius: 0;
@@ -189,26 +231,40 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Needed so the curved bottom clips cleanly on iOS during wipe */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
+/*
+  Exact SiteIntroLoader exit:
+  transform 750ms cubic-bezier(0.76, 0, 0.24, 1)
+  border-radius 180ms ease-in → 0 0 55% 55% / 0 0 100px 100px
+*/
 .gate-panel.is-exiting {
-  overflow: hidden;
+  /* Kill rise-in so it can't override the wipe transform */
+  animation: none !important;
+  overflow: hidden !important;
+  overscroll-behavior: none;
   transform: translateY(-100%);
   border-radius: 0 0 55% 55% / 0 0 100px 100px;
   transition:
     transform 750ms cubic-bezier(0.76, 0, 0.24, 1),
     border-radius 180ms ease-in;
   pointer-events: none;
+  /* Keep the whole panel (glow + content) as one clipped layer on iOS */
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
 }
 
 .card-welcome.gate-panel {
-  z-index: 50;
+  z-index: 9999;
   padding:
     calc(env(safe-area-inset-top, 0px) + var(--space))
     var(--space)
     calc(env(safe-area-inset-bottom, 0px) + var(--space));
 }
 
+/* Ambient glow layer — same role as SiteIntroLoader radial glow */
 .card-welcome.gate-panel::before {
   content: "";
   position: absolute;
@@ -223,11 +279,11 @@ body {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: var(--card-max);
+  max-width: var(--text-measure);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1.35rem;
+  gap: var(--section-gap);
 }
 
 .card-welcome__intro {
@@ -239,13 +295,17 @@ body {
   padding-top: 0.15rem;
 }
 
+/* Continue — same frosted glass as links (not a selected CTA) */
 .card-welcome__continue {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   margin: 0.15rem 0 0;
-  padding: 0.95rem 1.15rem;
+  min-height: var(--link-min-h);
+  padding: var(--link-pad-y) var(--link-pad-x);
   font-family: var(--font-body);
-  font-size: 0.9375rem;
+  font-size: var(--link-label);
   font-weight: 600;
   letter-spacing: -0.012em;
   color: var(--ink);
@@ -253,14 +313,7 @@ body {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   appearance: none;
-  background: var(--glass-bg);
-  border: 1px solid hsl(185 100% 55% / 0.28);
   border-radius: var(--radius-sm);
-  box-shadow:
-    inset 3px 0 0 0 var(--accent),
-    0 8px 28px hsl(185 100% 55% / 0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   transition:
     border-color 0.22s ease,
     box-shadow 0.22s ease,
@@ -282,11 +335,8 @@ body {
 }
 
 .card-welcome__continue:hover {
-  border-color: hsl(185 100% 55% / 0.4);
-  box-shadow:
-    inset 3px 0 0 0 var(--accent),
-    0 10px 32px hsl(0 0% 0% / 0.25),
-    0 0 40px hsl(185 100% 55% / 0.1);
+  border-color: hsl(0 0% 100% / 0.16);
+  box-shadow: 0 8px 24px hsl(0 0% 0% / 0.2);
 }
 
 .card-welcome__continue:focus-visible {
@@ -302,6 +352,7 @@ body {
 
 .card-welcome__continue:active {
   transform: translateY(0);
+  box-shadow: 0 4px 16px rgba(20, 18, 26, 0.05);
 }
 
 .card-welcome__continue:disabled {
@@ -334,6 +385,7 @@ body {
   margin: 0;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 0
     env(safe-area-inset-left, 0px);
+  /* Clean rounded bottom corners — keep these */
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   overflow: hidden;
   box-shadow: none;
@@ -366,8 +418,8 @@ body {
 .card__photo {
   display: block;
   width: 100%;
-  height: auto;
-  aspect-ratio: 4 / 5;
+  height: var(--hero-h);
+  max-height: var(--hero-h);
   object-fit: cover;
   object-position: center 22%;
   vertical-align: middle;
@@ -379,6 +431,11 @@ body {
   padding: 0 var(--space);
   z-index: 3;
   background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .card__body > * {
@@ -386,61 +443,52 @@ body {
   z-index: 1;
 }
 
-/* glass-card-clear — matches ClearStack site */
-.glass-surface {
+/*
+  Universal dark frosted glass — apply to every panel on welcome + card screens.
+  Always keep these in sync: intro, continue, identity, logo, links.
+*/
+.glass,
+.glass-surface,
+.card__intro,
+.card-welcome__continue,
+.card__identity,
+.card__logo-wrap,
+.link-card {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-left: 1px solid hsl(185 100% 55% / 0.2);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.glass-surface::before,
+.card__intro::before,
+.card__identity::before {
+  display: none;
 }
 
 .card__identity {
   text-align: left;
   position: relative;
-  padding: 1.35rem 1.35rem 1.55rem;
+  width: 100%;
+  max-width: var(--text-measure);
+  margin-inline: auto;
+  padding: var(--pad-card);
   border-radius: var(--radius-lg);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-left: 1px solid hsl(185 100% 55% / 0.2);
-  box-shadow: var(--shadow-identity);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.card__identity::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 1.35rem;
-  right: 1.35rem;
-  height: 1px;
-  border-radius: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    hsl(185 100% 55% / 0.45) 50%,
-    transparent
-  );
-  opacity: 0.9;
+  /* No overflow:hidden — it kills backdrop-filter frost on iOS/WebKit */
 }
 
 .card__logo-wrap {
-  width: 5.5rem;
-  height: 5.5rem;
-  margin-bottom: 1.05rem;
+  width: var(--logo-size);
+  height: var(--logo-size);
+  margin-bottom: clamp(0.8rem, 0.6rem + 0.8vw, 1.15rem);
   margin-top: 0.15rem;
   border-radius: 50%;
-  /* Same clean glass as the identity card */
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-identity);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   display: grid;
   place-items: center;
-  overflow: hidden;
+  /* Clip logo image only, keep frost on the wrap via border-radius */
+  overflow: clip;
+  flex-shrink: 0;
 }
 
 .card__logo {
@@ -452,16 +500,17 @@ body {
 .card__name {
   margin: 0 0 0.4rem;
   font-family: var(--font-display);
-  font-size: clamp(1.48rem, 5.1vw, 1.82rem);
+  font-size: var(--name-size);
   font-weight: 700;
   font-variation-settings: "opsz" 72;
   letter-spacing: -0.028em;
   line-height: 1.18;
+  overflow-wrap: anywhere;
 }
 
 .card__role {
   margin: 0;
-  font-size: 0.9375rem;
+  font-size: var(--body-size);
   letter-spacing: 0.01em;
 }
 
@@ -469,18 +518,18 @@ body {
   display: block;
   margin-bottom: 0.42rem;
   font-weight: 600;
-  font-size: 1.125rem;
+  font-size: var(--title-size);
   color: var(--ink);
   letter-spacing: -0.017em;
 }
 
 .card__org {
   display: block;
-  font-size: 0.71875rem;
+  font-size: var(--org-size);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: hsl(var(--text-muted));
+  color: hsl(0 0% 98% / 0.88);
 }
 
 .card__divider {
@@ -499,7 +548,7 @@ body {
 /* Proof gauges - standalone rings, no enclosing box */
 .card__proof {
   position: relative;
-  margin-top: 1.35rem;
+  margin-top: var(--section-gap);
   padding: 0.35rem 0 0.15rem;
   background: transparent;
   border: none;
@@ -508,9 +557,10 @@ body {
   align-items: center;
   justify-content: space-evenly;
   flex-wrap: nowrap;
-  gap: clamp(0.75rem, 4vw, 2.25rem);
+  gap: var(--proof-gap);
   width: 100%;
-  max-width: 100%;
+  max-width: var(--text-measure);
+  margin-inline: auto;
 }
 
 .proof-gauge {
@@ -523,15 +573,12 @@ body {
   min-width: 0;
   flex: 0 0 auto;
   opacity: 0;
-  transform: translateY(6px);
+  /* Avoid transform on the whole gauge — it softens tiny label text */
 }
 
 .proof-gauge.is-ready {
   opacity: 1;
-  transform: none;
-  transition:
-    opacity 0.45s ease,
-    transform 0.45s ease;
+  transition: opacity 0.45s ease;
 }
 
 .proof-gauge__ring {
@@ -539,13 +586,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 68px;
-  height: 68px;
+  width: var(--ring-size);
+  height: var(--ring-size);
 }
 
 .proof-gauge__svg {
-  width: 68px;
-  height: 68px;
+  width: var(--ring-size);
+  height: var(--ring-size);
   display: block;
   transform: rotate(-90deg);
 }
@@ -588,22 +635,22 @@ body {
 
 .proof-gauge__number {
   font-family: var(--font-metric);
-  font-size: 0.75rem;
+  font-size: var(--ring-num);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   line-height: 1;
-  background-image: var(--gradient-accent);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  /* Solid accent — gradient clip softens small type on mobile */
+  color: var(--accent);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 }
 
 .proof-gauge__star {
   width: 0.85em;
   height: 0.85em;
   flex-shrink: 0;
-  filter: drop-shadow(0 0 10px hsl(185 100% 55% / 0.35));
+  color: var(--accent);
 }
 
 .proof-gauge__star svg {
@@ -614,46 +661,43 @@ body {
 
 .proof-gauge__label {
   margin: 0;
-  max-width: 6.25rem;
-  font-size: 0.5625rem;
+  max-width: 8rem;
+  font-size: var(--ring-label);
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   text-align: center;
-  color: hsl(var(--text-muted));
-  line-height: 1.35;
-}
-
-@media (max-width: 380px) {
-  .card__proof {
-    gap: 1.15rem;
-  }
+  color: #ffffff;
+  opacity: 1;
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  transform: translateZ(0);
 }
 
 .card__intro {
-  margin-top: 1.25rem;
-  padding: 1.15rem 1.2rem 1.2rem;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-left: 1px solid hsl(185 100% 55% / 0.2);
+  position: relative;
+  margin-top: 0;
+  width: 100%;
+  max-width: var(--text-measure);
+  margin-inline: auto;
+  padding: var(--pad-intro);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-identity);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .card__intro-body {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: clamp(0.55rem, 0.4rem + 0.6vw, 0.85rem);
 }
 
 .card__intro-body p {
   margin: 0;
-  font-size: 0.90625rem;
+  font-size: var(--body-size);
   line-height: 1.55;
   color: hsl(var(--text-secondary));
   letter-spacing: -0.005em;
+  overflow-wrap: break-word;
 }
 
 .card__intro-body p:first-child {
@@ -662,7 +706,10 @@ body {
 }
 
 .card__connect {
-  margin-top: 1.35rem;
+  margin-top: var(--section-gap);
+  width: 100%;
+  max-width: var(--text-measure);
+  margin-inline: auto;
 }
 
 .card__nav {
@@ -670,9 +717,9 @@ body {
 }
 
 .card__nav-kicker {
-  margin: 0 0 0.85rem;
+  margin: 0 0 clamp(0.7rem, 0.55rem + 0.6vw, 0.95rem);
   font-family: var(--font-body);
-  font-size: 0.6875rem;
+  font-size: var(--kicker-size);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -697,25 +744,26 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  min-height: 3.25rem;
-  padding: 0.85rem 1.05rem;
+  gap: clamp(0.65rem, 0.4rem + 1.2vw, 1.15rem);
+  min-height: var(--link-min-h);
+  padding: var(--link-pad-y) var(--link-pad-x);
   text-decoration: none;
   color: inherit;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   transition:
     border-color 0.22s ease,
     box-shadow 0.22s ease,
     transform 0.22s ease;
 }
 
+/* Keep compact height when no subtext (current wording) */
+.link-card:not(:has(.link-card__desc)) {
+  min-height: calc(var(--link-min-h) - 0.2rem);
+}
+
 .link-card--compact {
-  min-height: 2.85rem;
-  padding: 0.75rem 1rem;
+  min-height: calc(var(--link-min-h) - 0.35rem);
+  padding: calc(var(--link-pad-y) - 0.1rem) var(--link-pad-x);
 }
 
 .link-card--compact .link-card__text {
@@ -767,12 +815,12 @@ button.link-card {
 
 .link-card__label {
   font-weight: 600;
-  font-size: 0.9375rem;
+  font-size: var(--link-label);
   letter-spacing: -0.012em;
 }
 
 .link-card__desc {
-  font-size: 0.8125rem;
+  font-size: var(--link-desc);
   color: hsl(var(--text-muted));
   overflow: hidden;
   text-overflow: ellipsis;
@@ -785,8 +833,8 @@ button.link-card {
 
 .link-card__icon {
   flex-shrink: 0;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: var(--link-icon);
+  height: var(--link-icon);
   border-radius: 999px;
   background: hsl(185 100% 55% / 0.1);
   border: 1px solid hsl(185 100% 55% / 0.2);
@@ -839,6 +887,7 @@ button.link-card {
   .gate-panel.is-exiting {
     transition: none;
     transform: translateY(-100%);
+    border-radius: 0 0 55% 55% / 0 0 100px 100px;
   }
 
   .app__loading {
@@ -848,7 +897,6 @@ button.link-card {
   .proof-gauge,
   .proof-gauge.is-ready {
     opacity: 1;
-    transform: none;
     transition: none;
   }
 
@@ -866,244 +914,24 @@ button.link-card {
   }
 }
 
-/* —— Phones & tablets: fill the viewport, no side gutters, no overflow —— */
+/*
+  Phones + tablets only — fluid auto-layout.
+  No desktop/laptop layout. Width changes (preview drag, flip phone → iPad)
+  continuously reflow via the clamp() tokens above.
+*/
 
-/* Very small phones */
-@media (max-width: 360px) {
+/* Wider tablets: slightly shorter hero so Connect stays reachable */
+@media (min-width: 700px) {
   :root {
-    --space: 0.85rem;
-    --hero-overlap: 2.25rem;
-  }
-
-  .card__identity {
-    padding: 1.1rem 1.05rem 1.25rem;
-  }
-
-  .card__logo-wrap {
-    width: 4.75rem;
-    height: 4.75rem;
-  }
-
-  .card__name {
-    font-size: clamp(1.28rem, 7.2vw, 1.5rem);
-  }
-
-  .card__role [data-field="title"] {
-    font-size: 1rem;
-  }
-
-  .card__proof {
-    gap: 0.65rem;
-  }
-
-  .proof-gauge__ring,
-  .proof-gauge__svg {
-    width: 58px;
-    height: 58px;
-  }
-
-  .proof-gauge__number {
-    font-size: 0.68rem;
-  }
-
-  .proof-gauge__label {
-    max-width: 5.25rem;
-    font-size: 0.5rem;
-    letter-spacing: 0.12em;
-  }
-
-  .card__intro {
-    padding: 1rem 1rem 1.05rem;
-  }
-
-  .link-card {
-    gap: 0.65rem;
-    padding: 0.75rem 0.85rem;
-  }
-
-  .link-card__icon {
-    width: 2.1rem;
-    height: 2.1rem;
+    --hero-h: min(58svh, clamp(20rem, 10rem + 28vw, 32rem));
   }
 }
 
-/* Standard phones — already full-bleed via --card-max: 100% */
-@media (min-width: 361px) and (max-width: 767px) {
+/* Short landscape (phone flipped / short tablet) — compress hero only */
+@media (max-height: 500px) and (orientation: landscape) {
   :root {
-    --space: clamp(1rem, 4.5vw, 1.35rem);
-  }
-
-  .card__photo {
-    aspect-ratio: 4 / 5;
-    max-height: min(72svh, 36rem);
-    object-fit: cover;
-  }
-}
-
-/* Tablets / iPads (portrait + landscape) — use the full width */
-@media (min-width: 768px) and (max-width: 1199px) {
-  :root {
-    --space: clamp(1.35rem, 3.5vw, 2.25rem);
-    --hero-overlap: clamp(2.75rem, 5vw, 3.5rem);
-    --radius-lg: 26px;
-    --radius-sm: 16px;
-  }
-
-  .card-welcome.gate-panel {
-    justify-content: center;
-  }
-
-  .card-welcome__inner,
-  .card-stage,
-  .card {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .card__photo {
-    aspect-ratio: 16 / 11;
-    max-height: min(58svh, 34rem);
-    width: 100%;
-    object-fit: cover;
-    object-position: center 20%;
-  }
-
-  .card__identity {
-    padding: 1.6rem 1.75rem 1.75rem;
-  }
-
-  .card__identity::before {
-    left: 1.75rem;
-    right: 1.75rem;
-  }
-
-  .card__logo-wrap {
-    width: 6.25rem;
-    height: 6.25rem;
-  }
-
-  .card__name {
-    font-size: clamp(1.75rem, 3.2vw, 2.15rem);
-  }
-
-  .card__role [data-field="title"] {
-    font-size: 1.2rem;
-  }
-
-  .card__proof {
-    gap: clamp(1.5rem, 6vw, 3.5rem);
-    margin-top: 1.6rem;
-  }
-
-  .proof-gauge__ring,
-  .proof-gauge__svg {
-    width: 76px;
-    height: 76px;
-  }
-
-  .proof-gauge__number {
-    font-size: 0.82rem;
-  }
-
-  .proof-gauge__label {
-    max-width: 7.5rem;
-    font-size: 0.625rem;
-  }
-
-  .card__intro {
-    margin-top: 1.5rem;
-    padding: 1.35rem 1.45rem 1.45rem;
-  }
-
-  .card__intro-body p {
-    font-size: 1rem;
-    line-height: 1.6;
-  }
-
-  .card__connect {
-    margin-top: 1.6rem;
-  }
-
-  .link-card {
-    min-height: 3.5rem;
-    padding: 1rem 1.2rem;
-  }
-
-  .link-card__label {
-    font-size: 1rem;
-  }
-
-  .card-welcome__continue {
-    padding: 1.05rem 1.25rem;
-    font-size: 1rem;
-  }
-}
-
-/* iPad landscape / large tablets — keep content readable, still fill width */
-@media (min-width: 900px) and (max-width: 1199px) and (orientation: landscape) {
-  .card__photo {
-    aspect-ratio: 21 / 9;
-    max-height: min(48svh, 28rem);
-  }
-
-  .card__body {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem 1.75rem;
-    align-items: start;
-  }
-
-  .card__identity {
-    grid-column: 1 / -1;
-  }
-
-  .card__proof {
-    grid-column: 1 / -1;
-    margin-top: 0.25rem;
-  }
-
-  .card__intro {
-    margin-top: 0;
-  }
-
-  .card__connect {
-    margin-top: 0;
-  }
-}
-
-/* True desktops only — narrow card (phones/iPads stay full-bleed above) */
-@media (min-width: 1200px) {
-  :root {
-    --card-max: 28rem;
-    --space: 1.5rem;
-  }
-
-  .card-welcome__inner,
-  .card-stage,
-  .card {
-    max-width: var(--card-max);
-  }
-}
-
-/* Short phones (landscape phone) — keep hero usable, no vertical spill */
-@media (max-height: 480px) and (orientation: landscape) {
-  :root {
-    --hero-overlap: 2rem;
-  }
-
-  .card__photo {
-    aspect-ratio: 21 / 9;
-    max-height: 42svh;
-  }
-
-  .card__logo-wrap {
-    width: 4.25rem;
-    height: 4.25rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .card__identity {
-    padding: 1rem 1.1rem 1.15rem;
+    --hero-h: min(42svh, 16rem);
+    --hero-overlap: clamp(2.5rem, 1.8rem + 2.5vw, 3.25rem);
   }
 
   .gate-panel {

@@ -17,9 +17,9 @@
   },
   "intro": {
     "paragraphs": [
-      "Business owner? Thanks for scanning — you're in the right place.",
-      "ClearStack Digital builds high-performance websites for Australian business owners — whether you're stuck on referrals, your site isn't bringing leads, or you're ready to look the part online.",
-      "Tap continue to book a free 15-min call or start a quick project brief (3 min). No pressure."
+      "Thanks for scanning. You're in the right place.",
+      "We build websites that look the part and actually bring work in - award-winning, fast, and built for Aussie businesses of every kind.",
+      "If something on that shirt hit home, continue. I'd love to hear what's going on and show you what we can do."
     ]
   },
   "proof": [
@@ -49,26 +49,22 @@
     {
       "id": "book",
       "label": "Book a free call",
-      "url": "https://calendly.com/mathew-clearstackdigital/30min",
-      "description": "15 min · no pressure"
+      "url": "https://calendly.com/mathew-clearstackdigital/30min"
     },
     {
       "id": "typeform",
       "label": "Start website project",
-      "url": "https://www.clearstackdigital.com.au/start-website-build",
-      "description": "Tell us what you need (3 min)"
+      "url": "https://www.clearstackdigital.com.au/start-website-build"
     },
     {
       "id": "website",
       "label": "Website",
-      "url": "https://www.clearstackdigital.com.au/",
-      "description": "clearstackdigital.com.au"
+      "url": "https://www.clearstackdigital.com.au/"
     },
     {
       "id": "portfolio",
       "label": "See our portfolio",
-      "url": "https://www.clearstackdigital.com.au/portfolio",
-      "description": "Live builds & case studies"
+      "url": "https://www.clearstackdigital.com.au/portfolio"
     }
   ]
 }

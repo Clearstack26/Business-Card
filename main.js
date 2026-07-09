@@ -22,12 +22,8 @@ const RING_STROKE = 4;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
-let starGradientSeq = 0;
-
 function ratingStarSvg() {
-  starGradientSeq += 1;
-  const gradientId = `bc-star-${starGradientSeq}`;
-  return `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="${gradientId}" x1="12" y1="2" x2="12" y2="22" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="hsl(185 100% 68%)"/><stop offset="45%" stop-color="hsl(185 100% 48%)"/><stop offset="100%" stop-color="hsl(185 100% 38%)"/></linearGradient></defs><path d="M12 2.75l2.18 4.52 4.97.76-3.6 3.38.85 4.94L12 14.9l-4.4 2.45.85-4.94-3.6-3.38 4.97-.76L12 2.75z" fill="url(#${gradientId})"/></svg>`;
+  return `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2.75l2.18 4.52 4.97.76-3.6 3.38.85 4.94L12 14.9l-4.4 2.45.85-4.94-3.6-3.38 4.97-.76L12 2.75z" fill="currentColor"/></svg>`;
 }
 
 function iconFor(id) {
@@ -323,8 +319,17 @@ function continueLabel(cfg) {
   return label || "Continue";
 }
 
-/** Curved-arc wipe up — same exit as ClearStack SiteIntroLoader */
-const WIPE_EXIT_MS = 750;
+/**
+ * Curved-arc wipe up — identical to ClearStack SiteIntroLoader exit
+ * (the motion after the loader hits 100%). No progress bar here:
+ * tapping Continue = that 100% moment.
+ *
+ * SiteIntroLoader sequence:
+ *   HOLD_MS (300) → setExiting(true) → EXIT_MS (750) → unmount
+ */
+const HOLD_MS = 300;
+const EXIT_MS = 750;
+const SETTLE_RAF_COUNT = 3;
 
 function runCurvedWipeExit(panel, onComplete) {
   if (!panel) {
@@ -338,14 +343,36 @@ function runCurvedWipeExit(panel, onComplete) {
     return;
   }
 
-  void panel.offsetHeight;
-  panel.classList.add("is-exiting");
+  // Pin scroll so iOS doesn't fight the transform mid-wipe
+  panel.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
 
-  window.setTimeout(() => {
-    panel.hidden = true;
-    panel.classList.remove("is-exiting");
-    onComplete?.();
-  }, WIPE_EXIT_MS);
+  let remaining = SETTLE_RAF_COUNT;
+  function settleStep() {
+    remaining -= 1;
+    if (remaining > 0) {
+      requestAnimationFrame(settleStep);
+      return;
+    }
+
+    // Same HOLD_MS as SiteIntroLoader after counter snaps to 100
+    window.setTimeout(() => {
+      // Drop any entrance animation so wipe transform owns the layer
+      panel.style.animation = "none";
+      // Force a layout pass so the transition always fires (esp. iOS)
+      void panel.offsetHeight;
+      panel.classList.add("is-exiting");
+
+      window.setTimeout(() => {
+        panel.hidden = true;
+        panel.classList.remove("is-exiting");
+        panel.style.animation = "";
+        onComplete?.();
+      }, EXIT_MS);
+    }, HOLD_MS);
+  }
+  requestAnimationFrame(settleStep);
 }
 
 function preloadCardImages(cardStep) {
@@ -364,13 +391,18 @@ function revealCardStep(welcomeStep, cardStep) {
   const continueBtn = welcomeStep.querySelector('[data-action="continue"]');
 
   if (welcomeStep.classList.contains("is-exiting")) return;
+  if (welcomeStep.dataset.exiting === "1") return;
+  welcomeStep.dataset.exiting = "1";
   if (continueBtn) continueBtn.disabled = true;
 
+  // Card sits underneath (same as ClearStack site under the loader)
   cardStep.hidden = false;
   cardStep.classList.add("is-visible");
   scrollCardToTop();
+  welcomeStep.scrollTop = 0;
 
   runCurvedWipeExit(welcomeStep, () => {
+    delete welcomeStep.dataset.exiting;
     if (continueBtn) continueBtn.disabled = false;
     if (skipLink) skipLink.setAttribute("href", "#main");
     scrollCardToTop();

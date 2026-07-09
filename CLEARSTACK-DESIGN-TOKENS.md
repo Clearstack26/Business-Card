@@ -38,12 +38,13 @@ background:
 
 ## Glass card (`glass-card-clear`)
 
+Matches ClearStack site CSS (translucent over ambient glow — no backdrop-filter):
+
 ```css
 background: hsl(220 16% 11% / 0.4);
 border: 1px solid hsl(0 0% 100% / 0.1);
 border-left: 1px solid hsl(185 100% 55% / 0.2);
 box-shadow: 0 4px 24px hsl(185 100% 55% / 0.06);
-backdrop-filter: blur(12px);
 ```
 
 ## Portfolio metric ring (compact)
