@@ -38,7 +38,7 @@ Edit **[site-config.json](site-config.json)**:
 | `name`, `title`, `organization` | Shown on card and in vCard. |
 | `photo`, `logo` | Asset paths. |
 | `contact` | Phone, website, note — used in the **vCard** (contact QR / `.vcf`). Optional `email` adds an **Email** row on the card if set. |
-| `links` | Website, LinkedIn, book a call (`url` entries only). |
+| `links` | Website, book a call (`url` entries only). |
 
 ### Card links
 
