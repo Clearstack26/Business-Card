@@ -213,9 +213,6 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 140%;
   pointer-events: none;
   z-index: 0;
   background-color: var(--surface);
@@ -509,8 +506,11 @@ body {
   box-shadow: none;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 2rem;
+  justify-content: space-evenly;
+  flex-wrap: nowrap;
+  gap: clamp(0.75rem, 4vw, 2.25rem);
+  width: 100%;
+  max-width: 100%;
 }
 
 .proof-gauge {
@@ -774,9 +774,13 @@ button.link-card {
 .link-card__desc {
   font-size: 0.8125rem;
   color: hsl(var(--text-muted));
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
 }
 
 .link-card__icon {
@@ -859,5 +863,251 @@ button.link-card {
 
   .link-card:hover .link-card__icon {
     background: hsl(185 100% 55% / 0.1);
+  }
+}
+
+/* —— Phones & tablets: fill the viewport, no side gutters, no overflow —— */
+
+/* Very small phones */
+@media (max-width: 360px) {
+  :root {
+    --space: 0.85rem;
+    --hero-overlap: 2.25rem;
+  }
+
+  .card__identity {
+    padding: 1.1rem 1.05rem 1.25rem;
+  }
+
+  .card__logo-wrap {
+    width: 4.75rem;
+    height: 4.75rem;
+  }
+
+  .card__name {
+    font-size: clamp(1.28rem, 7.2vw, 1.5rem);
+  }
+
+  .card__role [data-field="title"] {
+    font-size: 1rem;
+  }
+
+  .card__proof {
+    gap: 0.65rem;
+  }
+
+  .proof-gauge__ring,
+  .proof-gauge__svg {
+    width: 58px;
+    height: 58px;
+  }
+
+  .proof-gauge__number {
+    font-size: 0.68rem;
+  }
+
+  .proof-gauge__label {
+    max-width: 5.25rem;
+    font-size: 0.5rem;
+    letter-spacing: 0.12em;
+  }
+
+  .card__intro {
+    padding: 1rem 1rem 1.05rem;
+  }
+
+  .link-card {
+    gap: 0.65rem;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .link-card__icon {
+    width: 2.1rem;
+    height: 2.1rem;
+  }
+}
+
+/* Standard phones — already full-bleed via --card-max: 100% */
+@media (min-width: 361px) and (max-width: 767px) {
+  :root {
+    --space: clamp(1rem, 4.5vw, 1.35rem);
+  }
+
+  .card__photo {
+    aspect-ratio: 4 / 5;
+    max-height: min(72svh, 36rem);
+    object-fit: cover;
+  }
+}
+
+/* Tablets / iPads (portrait + landscape) — use the full width */
+@media (min-width: 768px) and (max-width: 1199px) {
+  :root {
+    --space: clamp(1.35rem, 3.5vw, 2.25rem);
+    --hero-overlap: clamp(2.75rem, 5vw, 3.5rem);
+    --radius-lg: 26px;
+    --radius-sm: 16px;
+  }
+
+  .card-welcome.gate-panel {
+    justify-content: center;
+  }
+
+  .card-welcome__inner,
+  .card-stage,
+  .card {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .card__photo {
+    aspect-ratio: 16 / 11;
+    max-height: min(58svh, 34rem);
+    width: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+  }
+
+  .card__identity {
+    padding: 1.6rem 1.75rem 1.75rem;
+  }
+
+  .card__identity::before {
+    left: 1.75rem;
+    right: 1.75rem;
+  }
+
+  .card__logo-wrap {
+    width: 6.25rem;
+    height: 6.25rem;
+  }
+
+  .card__name {
+    font-size: clamp(1.75rem, 3.2vw, 2.15rem);
+  }
+
+  .card__role [data-field="title"] {
+    font-size: 1.2rem;
+  }
+
+  .card__proof {
+    gap: clamp(1.5rem, 6vw, 3.5rem);
+    margin-top: 1.6rem;
+  }
+
+  .proof-gauge__ring,
+  .proof-gauge__svg {
+    width: 76px;
+    height: 76px;
+  }
+
+  .proof-gauge__number {
+    font-size: 0.82rem;
+  }
+
+  .proof-gauge__label {
+    max-width: 7.5rem;
+    font-size: 0.625rem;
+  }
+
+  .card__intro {
+    margin-top: 1.5rem;
+    padding: 1.35rem 1.45rem 1.45rem;
+  }
+
+  .card__intro-body p {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .card__connect {
+    margin-top: 1.6rem;
+  }
+
+  .link-card {
+    min-height: 3.5rem;
+    padding: 1rem 1.2rem;
+  }
+
+  .link-card__label {
+    font-size: 1rem;
+  }
+
+  .card-welcome__continue {
+    padding: 1.05rem 1.25rem;
+    font-size: 1rem;
+  }
+}
+
+/* iPad landscape / large tablets — keep content readable, still fill width */
+@media (min-width: 900px) and (max-width: 1199px) and (orientation: landscape) {
+  .card__photo {
+    aspect-ratio: 21 / 9;
+    max-height: min(48svh, 28rem);
+  }
+
+  .card__body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem 1.75rem;
+    align-items: start;
+  }
+
+  .card__identity {
+    grid-column: 1 / -1;
+  }
+
+  .card__proof {
+    grid-column: 1 / -1;
+    margin-top: 0.25rem;
+  }
+
+  .card__intro {
+    margin-top: 0;
+  }
+
+  .card__connect {
+    margin-top: 0;
+  }
+}
+
+/* True desktops only — narrow card (phones/iPads stay full-bleed above) */
+@media (min-width: 1200px) {
+  :root {
+    --card-max: 28rem;
+    --space: 1.5rem;
+  }
+
+  .card-welcome__inner,
+  .card-stage,
+  .card {
+    max-width: var(--card-max);
+  }
+}
+
+/* Short phones (landscape phone) — keep hero usable, no vertical spill */
+@media (max-height: 480px) and (orientation: landscape) {
+  :root {
+    --hero-overlap: 2rem;
+  }
+
+  .card__photo {
+    aspect-ratio: 21 / 9;
+    max-height: 42svh;
+  }
+
+  .card__logo-wrap {
+    width: 4.25rem;
+    height: 4.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .card__identity {
+    padding: 1rem 1.1rem 1.15rem;
+  }
+
+  .gate-panel {
+    justify-content: flex-start;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 0.75rem);
   }
 }
