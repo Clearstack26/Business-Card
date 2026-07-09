@@ -23,5 +23,28 @@
       "label": "Book a call",
       "url": "https://calendly.com/mathew-clearstackdigital/30min"
     }
+  ],
+  "trustBadges": [
+    {
+      "id": "google",
+      "type": "stars",
+      "stars": 5,
+      "label": "Google",
+      "sublabel": "5.0 reviews"
+    },
+    {
+      "id": "awwwards",
+      "type": "awwwards",
+      "count": 3,
+      "label": "Awwwards",
+      "sublabel": "Site of the Day"
+    },
+    {
+      "id": "ownership",
+      "type": "metric",
+      "value": "100%",
+      "label": "Ownership",
+      "sublabel": "You own your site"
+    }
   ]
 }
