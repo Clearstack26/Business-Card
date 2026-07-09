@@ -60,9 +60,15 @@
     },
     {
       "id": "website",
-      "label": "See our work",
+      "label": "Website",
       "url": "https://www.clearstackdigital.com.au/",
       "description": "clearstackdigital.com.au"
+    },
+    {
+      "id": "portfolio",
+      "label": "See our portfolio",
+      "url": "https://www.clearstackdigital.com.au/portfolio",
+      "description": "Live builds & case studies"
     }
   ]
 }
