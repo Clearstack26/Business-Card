@@ -56,6 +56,18 @@ function LiveBadge({ syncing }: { syncing: boolean }) {
   );
 }
 
+function scrollPageToTop() {
+  const jump = () => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
+  jump();
+  requestAnimationFrame(jump);
+  window.setTimeout(jump, 50);
+  window.setTimeout(jump, 200);
+}
+
 export function DashboardShell({
   stats,
   period,
@@ -81,18 +93,21 @@ export function DashboardShell({
   }, []);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    scrollPageToTop();
   }, [active]);
+
+  useEffect(() => {
+    scrollPageToTop();
+  }, []);
 
   const handleNavigate = (item: NavItem) => {
     setActive(item);
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    scrollPageToTop();
   };
 
   return (
     <div className="relative min-h-screen">
+      <div id="dashboard-top" aria-hidden className="h-0 w-0 overflow-hidden" />
       <Sidebar
         open={sidebarOpen}
         active={active}
@@ -107,7 +122,7 @@ export function DashboardShell({
         ariaLabel={sidebarOpen ? "Close menu" : "Open menu"}
       />
 
-      <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-6 md:px-8 lg:px-10">
+      <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pt-[max(1.25rem,env(safe-area-inset-top))] md:px-8 lg:px-10">
         <header className="mb-5 flex flex-col items-center text-center sm:mb-8">
           <div className="flex flex-col items-center gap-3">
             <img

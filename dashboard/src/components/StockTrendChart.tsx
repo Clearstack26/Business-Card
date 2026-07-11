@@ -19,6 +19,14 @@ import { PERIOD_LABELS, type TrendPoint } from "../lib/types";
 
 const PERIODS: TrendPeriod[] = ["7d", "30d", "90d", "1y"];
 
+/** Visible day window in expanded chart (no pinch/zoom). */
+const WINDOW_BY_PERIOD: Record<TrendPeriod, number> = {
+  "7d": 7,
+  "30d": 14,
+  "90d": 21,
+  "1y": 30,
+};
+
 type ExpandLayout = "card" | "mobile-portrait" | "mobile-landscape" | "desktop-modal";
 
 type ChartPoint = TrendPoint;
@@ -198,35 +206,22 @@ function CardTooltip({
   payload,
 }: {
   active?: boolean;
-  payload?: Array<{ payload: TrendPoint }>;
+  payload?: Array<{ payload: ChartPoint }>;
 }) {
   if (!active || !payload?.length) return null;
   const point = payload[0].payload;
   return (
     <div className="rounded-xl border border-border bg-card/95 px-3 py-2 text-xs shadow-lg backdrop-blur">
       <p className="font-medium text-foreground">{point.label}</p>
-      <p className="mt-1 text-muted">{point.date}</p>
-      <p className="mt-2 text-primary">{point.scans} scans</p>
-      <p className="text-muted">{point.cumulative} total in period</p>
+      <p className="mt-1 text-primary">{point.cumulative} total</p>
+      <p className="text-muted">{point.scans} that day</p>
     </div>
   );
 }
 
 function stockDot(props: { cx?: number; cy?: number; payload?: ChartPoint }) {
-  const { cx, cy, payload } = props;
-  if (cx == null || cy == null || !payload) return <g />;
-  const active = payload.scans > 0;
-  return (
-    <circle
-      cx={cx}
-      cy={cy}
-      r={active ? 3.5 : 2.25}
-      fill={active ? "#1affff" : "hsl(185 100% 55% / 0.35)"}
-      stroke="#0a0d12"
-      strokeWidth={active ? 1.5 : 1}
-      style={{ cursor: "pointer" }}
-    />
-  );
+  const { cx = 0, cy = 0 } = props;
+  return <circle cx={cx} cy={cy} r={3.5} fill="#1affff" stroke="#0a0d12" strokeWidth={1.5} />;
 }
 
 function LastValueLabel({
@@ -260,94 +255,91 @@ function clampViewport(start: number, end: number, length: number, minSpan: numb
   return { start: nextStart, end: nextEnd };
 }
 
-function useChartViewport(length: number, enabled: boolean) {
-  const minSpan = Math.min(7, Math.max(3, length));
-  const [viewport, setViewport] = useState<Viewport>({ start: 0, end: Math.max(0, length - 1) });
+function latestWindow(length: number, windowSize: number): Viewport {
+  const maxIndex = Math.max(0, length - 1);
+  const span = Math.min(windowSize, length);
+  const end = maxIndex;
+  const start = Math.max(0, end - span + 1);
+  return { start, end };
+}
+
+/** Pan-only timeline window — no pinch or wheel zoom. */
+function useChartWindow(length: number, period: TrendPeriod, enabled: boolean) {
+  const windowSize = WINDOW_BY_PERIOD[period];
+  const [viewport, setViewport] = useState<Viewport>(() => latestWindow(length, windowSize));
   const touchRef = useRef<{
-    mode: "pan" | "pinch" | null;
     startX: number;
     startViewport: Viewport;
-    startDistance: number;
-  }>({ mode: null, startX: 0, startViewport: { start: 0, end: 0 }, startDistance: 0 });
+  } | null>(null);
 
   useEffect(() => {
-    setViewport({ start: 0, end: Math.max(0, length - 1) });
-  }, [length]);
+    if (!enabled) return;
+    setViewport(latestWindow(length, windowSize));
+  }, [length, windowSize, enabled]);
 
-  const isZoomed = viewport.start > 0 || viewport.end < length - 1;
+  const span = Math.max(1, viewport.end - viewport.start + 1);
+  const canGoEarlier = viewport.start > 0;
+  const canGoLater = viewport.end < length - 1;
+  const isAtLatest = viewport.end >= length - 1;
 
-  const reset = () => setViewport({ start: 0, end: Math.max(0, length - 1) });
+  const step = Math.max(1, Math.floor(span / 2));
 
-  const onWheel = (event: React.WheelEvent) => {
-    if (!enabled || length < minSpan) return;
-    event.preventDefault();
-    const span = viewport.end - viewport.start + 1;
-    const direction = event.deltaY > 0 ? 1 : -1;
-    const nextSpan = Math.max(minSpan, Math.min(length, Math.round(span * (direction > 0 ? 1.15 : 0.85))));
-    if (nextSpan === span) return;
-    const center = (viewport.start + viewport.end) / 2;
-    const half = (nextSpan - 1) / 2;
-    setViewport(clampViewport(Math.round(center - half), Math.round(center + half), length, minSpan));
+  const goEarlier = () => {
+    if (!canGoEarlier) return;
+    setViewport(
+      clampViewport(viewport.start - step, viewport.end - step, length, Math.min(span, length))
+    );
   };
 
+  const goLater = () => {
+    if (!canGoLater) return;
+    setViewport(
+      clampViewport(viewport.start + step, viewport.end + step, length, Math.min(span, length))
+    );
+  };
+
+  const jumpLatest = () => setViewport(latestWindow(length, windowSize));
+
   const onTouchStart = (event: React.TouchEvent) => {
-    if (!enabled) return;
-    if (event.touches.length === 1) {
-      touchRef.current = {
-        mode: "pan",
-        startX: event.touches[0].clientX,
-        startViewport: viewport,
-        startDistance: 0,
-      };
-    } else if (event.touches.length === 2) {
-      const dx = event.touches[0].clientX - event.touches[1].clientX;
-      const dy = event.touches[0].clientY - event.touches[1].clientY;
-      touchRef.current = {
-        mode: "pinch",
-        startX: (event.touches[0].clientX + event.touches[1].clientX) / 2,
-        startViewport: viewport,
-        startDistance: Math.hypot(dx, dy),
-      };
-    }
+    if (!enabled || event.touches.length !== 1) return;
+    touchRef.current = {
+      startX: event.touches[0].clientX,
+      startViewport: viewport,
+    };
   };
 
   const onTouchMove = (event: React.TouchEvent) => {
-    if (!enabled || !touchRef.current.mode) return;
-    const span = touchRef.current.startViewport.end - touchRef.current.startViewport.start + 1;
+    if (!enabled || !touchRef.current || event.touches.length !== 1) return;
     const width = (event.currentTarget as HTMLElement).clientWidth || 1;
-
-    if (touchRef.current.mode === "pan" && event.touches.length === 1) {
-      const deltaX = event.touches[0].clientX - touchRef.current.startX;
-      const shift = Math.round((-deltaX / width) * span);
-      setViewport(
-        clampViewport(
-          touchRef.current.startViewport.start + shift,
-          touchRef.current.startViewport.end + shift,
-          length,
-          minSpan
-        )
-      );
-    }
-
-    if (touchRef.current.mode === "pinch" && event.touches.length === 2) {
-      const dx = event.touches[0].clientX - event.touches[1].clientX;
-      const dy = event.touches[0].clientY - event.touches[1].clientY;
-      const distance = Math.hypot(dx, dy);
-      if (!touchRef.current.startDistance) return;
-      const scale = touchRef.current.startDistance / Math.max(24, distance);
-      const nextSpan = Math.max(minSpan, Math.min(length, Math.round(span * scale)));
-      const center =
-        (touchRef.current.startViewport.start + touchRef.current.startViewport.end) / 2;
-      const half = (nextSpan - 1) / 2;
-      setViewport(clampViewport(Math.round(center - half), Math.round(center + half), length, minSpan));
-    }
+    const deltaX = event.touches[0].clientX - touchRef.current.startX;
+    const shift = Math.round((-deltaX / width) * span);
+    setViewport(
+      clampViewport(
+        touchRef.current.startViewport.start + shift,
+        touchRef.current.startViewport.end + shift,
+        length,
+        Math.min(span, length)
+      )
+    );
   };
 
   const onTouchEnd = () => {
-    touchRef.current.mode = null;
+    touchRef.current = null;
   };
 
-  return { viewport, setViewport, isZoomed, reset, onWheel, onTouchStart, onTouchMove, onTouchEnd };
+  return {
+    viewport,
+    canGoEarlier,
+    canGoLater,
+    isAtLatest,
+    goEarlier,
+    goLater,
+    jumpLatest,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
+    needsNav: length > windowSize,
+  };
 }
 
 function TrendChartBody({
@@ -399,7 +391,7 @@ function TrendChartBody({
     <div
       className={
         expanded
-          ? "h-full min-h-0 w-full touch-pan-x"
+          ? "h-full min-h-0 w-full"
           : "h-[min(52vw,20rem)] w-full sm:h-[20rem] lg:h-[22rem]"
       }
     >
@@ -407,10 +399,10 @@ function TrendChartBody({
         <ComposedChart
           data={data}
           margin={{
-            top: stockMode ? 10 : 12,
-            right: stockMode ? 2 : 10,
-            left: stockMode ? 2 : -6,
-            bottom: stockMode ? 0 : 8,
+            top: stockMode ? 12 : 12,
+            right: stockMode ? 8 : 10,
+            left: stockMode ? 4 : -6,
+            bottom: stockMode ? 28 : 8,
           }}
           onMouseMove={(state) => {
             const idx = typeof state?.activeTooltipIndex === "number" ? state.activeTooltipIndex : null;
@@ -434,13 +426,13 @@ function TrendChartBody({
             dataKey="label"
             stroke="hsl(200 8% 78%)"
             fontSize={11}
-            height={stockMode ? 22 : 30}
+            height={stockMode ? 32 : 30}
             tickLine={false}
             axisLine={{ stroke: "hsl(200 18% 22% / 0.35)", strokeWidth: 1 }}
-            minTickGap={landscape ? 12 : stockMode ? 14 : 20}
+            minTickGap={landscape ? 16 : stockMode ? 18 : 20}
             interval="preserveStartEnd"
-            padding={{ left: 0, right: 0 }}
-            tickMargin={4}
+            padding={{ left: 4, right: 4 }}
+            tickMargin={8}
           />
           {stockMode ? (
             <YAxis
@@ -457,10 +449,10 @@ function TrendChartBody({
             tickLine={false}
             axisLine={false}
             allowDecimals={false}
-            width={stockMode ? 22 : 28}
+            width={stockMode ? 24 : 28}
             domain={chartDomain(peak)}
             orientation="right"
-            tickMargin={2}
+            tickMargin={4}
           />
           <Tooltip
             cursor={stockMode ? <StockCrosshair /> : { stroke: "#1affff", strokeWidth: 1, strokeDasharray: "3 3" }}
@@ -577,6 +569,34 @@ function ChartHeaderStats({
   );
 }
 
+function ChartNavArrow({
+  direction,
+  disabled,
+  onClick,
+}: {
+  direction: "earlier" | "later";
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={direction === "earlier" ? "Earlier dates" : "Later dates"}
+      className="chart-nav-arrow"
+    >
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.25">
+        {direction === "earlier" ? (
+          <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+        ) : (
+          <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+      </svg>
+    </button>
+  );
+}
+
 function ExpandedChartOverlay({
   stats,
   period,
@@ -593,9 +613,19 @@ function ExpandedChartOverlay({
   const isDesktopModal = layout === "desktop-modal";
   const isLandscape = layout === "mobile-landscape";
   const length = stats.trend.length;
-  const zoomEnabled = length > 14;
-  const { viewport, isZoomed, reset, onWheel, onTouchStart, onTouchMove, onTouchEnd } =
-    useChartViewport(length, zoomEnabled);
+  const {
+    viewport,
+    canGoEarlier,
+    canGoLater,
+    isAtLatest,
+    goEarlier,
+    goLater,
+    jumpLatest,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
+    needsNav,
+  } = useChartWindow(length, period, true);
   const lastActive = useRef<number | null>(null);
 
   const handleActiveIndex = (index: number | null) => {
@@ -608,6 +638,11 @@ function ExpandedChartOverlay({
       hapticTick();
     }
   };
+
+  const rangeLabel =
+    stats.trend.length && viewport
+      ? `${stats.trend[viewport.start]?.label || ""} - ${stats.trend[viewport.end]?.label || ""}`
+      : "";
 
   const shell = (
     <motion.div
@@ -622,10 +657,10 @@ function ExpandedChartOverlay({
       onClick={isDesktopModal ? onClose : undefined}
     >
       <motion.div
-        initial={isDesktopModal ? { opacity: 0, y: 16, scale: 0.98 } : { opacity: 0 }}
-        animate={isDesktopModal ? { opacity: 1, y: 0, scale: 1 } : { opacity: 1 }}
-        exit={isDesktopModal ? { opacity: 0, y: 12, scale: 0.98 } : { opacity: 0 }}
-        transition={{ type: "spring", stiffness: 380, damping: 32 }}
+        initial={isDesktopModal ? { opacity: 0, y: 16, scale: 0.98 } : { opacity: 0, y: 24 }}
+        animate={isDesktopModal ? { opacity: 1, y: 0, scale: 1 } : { opacity: 1, y: 0 }}
+        exit={isDesktopModal ? { opacity: 0, y: 12, scale: 0.98 } : { opacity: 0, y: 24 }}
+        transition={{ type: "spring", stiffness: 380, damping: 36 }}
         className={[
           "chart-fullscreen-panel flex flex-col",
           isDesktopModal ? "chart-fullscreen-panel--desktop" : "chart-fullscreen-panel--mobile",
@@ -636,10 +671,10 @@ function ExpandedChartOverlay({
         <div className="chart-glass-bar">
           <div className="chart-glass-bar__top">
             <CloseXButton onClick={onClose} />
-            {isZoomed ? (
+            {!isAtLatest ? (
               <div className="ml-auto">
-                <button type="button" className="chart-tool-chip" onClick={reset}>
-                  Reset zoom
+                <button type="button" className="chart-tool-chip" onClick={jumpLatest}>
+                  Jump to latest
                 </button>
               </div>
             ) : null}
@@ -647,11 +682,11 @@ function ExpandedChartOverlay({
           <div className="chart-glass-bar__periods">
             <PeriodToggle period={period} onPeriodChange={onPeriodChange} glass />
           </div>
+          {rangeLabel ? <p className="chart-glass-hint">{rangeLabel}</p> : null}
         </div>
 
         <div
           className="chart-fullscreen-canvas"
-          onWheel={onWheel}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
@@ -666,6 +701,14 @@ function ExpandedChartOverlay({
             />
           </div>
         </div>
+
+        {needsNav ? (
+          <div className="chart-nav-bar">
+            <ChartNavArrow direction="earlier" disabled={!canGoEarlier} onClick={goEarlier} />
+            <p className="chart-nav-bar__label">Swipe or tap arrows to move through dates</p>
+            <ChartNavArrow direction="later" disabled={!canGoLater} onClick={goLater} />
+          </div>
+        ) : null}
       </motion.div>
     </motion.div>
   );
