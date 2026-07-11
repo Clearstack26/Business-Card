@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import {
+  Area,
   CartesianGrid,
+  ComposedChart,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -32,6 +33,12 @@ function TrendTooltip({
   );
 }
 
+function chartDomain(maxValue: number): [number, number] {
+  if (maxValue <= 0) return [0, 4];
+  const headroom = Math.max(1, Math.ceil(maxValue * 0.12));
+  return [0, maxValue + headroom];
+}
+
 export function StockTrendChart({
   stats,
   period,
@@ -45,6 +52,7 @@ export function StockTrendChart({
     ? stats.trend[stats.trend.length - 1].cumulative
     : stats.total;
   const positive = stats.changePercent >= 0;
+  const peak = stats.trend.reduce((max, point) => Math.max(max, point.cumulative), 0);
 
   return (
     <motion.section
@@ -90,57 +98,83 @@ export function StockTrendChart({
         </div>
       </div>
 
-      <div className="h-[340px] px-2 py-4 sm:px-4">
-        {stats.trend.length ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={stats.trend} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid
-                stroke="hsl(200 18% 22% / 0.35)"
-                strokeDasharray="2 6"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="label"
-                stroke="hsl(200 8% 78%)"
-                fontSize={11}
-                tickLine={false}
-                axisLine={false}
-                minTickGap={24}
-              />
-              <YAxis
-                stroke="hsl(200 8% 78%)"
-                fontSize={11}
-                tickLine={false}
-                axisLine={false}
-                allowDecimals={false}
-                width={36}
-              />
-              <Tooltip content={<TrendTooltip />} cursor={{ stroke: "#1affff", strokeWidth: 1 }} />
-              <Line
-                type="monotone"
-                dataKey="cumulative"
-                name="Total scans"
-                stroke="#1affff"
-                strokeWidth={2.5}
-                dot={false}
-                activeDot={{ r: 4, fill: "#1affff", stroke: "#0f1218", strokeWidth: 2 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="scans"
-                name="Daily scans"
-                stroke="hsl(200 100% 70% / 0.55)"
-                strokeWidth={1.5}
-                dot={false}
-                strokeDasharray="4 4"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-muted">
-            No scan data yet. When someone opens your card, the trend line will appear here.
-          </div>
-        )}
+      <div className="relative left-1/2 w-screen max-w-none -translate-x-1/2 lg:left-0 lg:w-full lg:translate-x-0">
+        <div className="h-[min(58vw,22rem)] sm:h-[20rem] lg:h-[22rem]">
+          {stats.trend.length ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart
+                data={stats.trend}
+                margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
+              >
+                <defs>
+                  <linearGradient id="scanTrendFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#1affff" stopOpacity={0.28} />
+                    <stop offset="100%" stopColor="#1affff" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  stroke="hsl(200 18% 22% / 0.28)"
+                  strokeDasharray="2 8"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="label"
+                  stroke="hsl(200 8% 78%)"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={20}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  stroke="hsl(200 8% 78%)"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                  width={28}
+                  domain={chartDomain(peak)}
+                />
+                <Tooltip
+                  content={<TrendTooltip />}
+                  cursor={{ stroke: "#1affff", strokeWidth: 1, strokeDasharray: "3 3" }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="cumulative"
+                  stroke="none"
+                  fill="url(#scanTrendFill)"
+                  isAnimationActive
+                  animationDuration={700}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="cumulative"
+                  name="Total scans"
+                  stroke="#1affff"
+                  strokeWidth={2.75}
+                  dot={false}
+                  activeDot={{ r: 5, fill: "#1affff", stroke: "#0f1218", strokeWidth: 2 }}
+                  isAnimationActive
+                  animationDuration={700}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="scans"
+                  name="Daily scans"
+                  stroke="hsl(200 100% 70% / 0.45)"
+                  strokeWidth={1.25}
+                  dot={false}
+                  strokeDasharray="4 5"
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted">
+              No scan data yet. When someone opens your card, the trend line will appear here.
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4 border-t border-border/70 px-5 py-3 text-[11px] uppercase tracking-[0.14em] text-muted">

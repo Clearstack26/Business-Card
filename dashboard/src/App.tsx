@@ -11,8 +11,10 @@ function ProtectedDashboard() {
   const [period, setPeriod] = useState<TrendPeriod>("30d");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   const loadStats = useCallback(async (nextPeriod: TrendPeriod = period) => {
+    setSyncing(true);
     try {
       const data = await fetchDashboardStats(nextPeriod);
       setStats(data);
@@ -21,6 +23,7 @@ function ProtectedDashboard() {
       setError(err instanceof Error ? err.message : "Could not load analytics");
     } finally {
       setLoading(false);
+      window.setTimeout(() => setSyncing(false), 500);
     }
   }, [period]);
 
@@ -83,6 +86,7 @@ function ProtectedDashboard() {
       period={period}
       onPeriodChange={setPeriod}
       onSignOut={signOut}
+      syncing={syncing}
     />
   );
 }

@@ -2,6 +2,7 @@ node_modules/
 dashboard/node_modules/
 .env
 .env.local
+.tmp-session.json
 dashboard/.env.production
 dashboard/.env.production.local
 .vercel
