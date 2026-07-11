@@ -69,7 +69,7 @@ function ProtectedDashboard() {
 
   if (loading && !stats) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted">
+      <div className="flex min-h-app items-center justify-center text-muted">
         Loading analytics...
       </div>
     );
@@ -77,7 +77,7 @@ function ProtectedDashboard() {
 
   if (error && !stats) {
     return (
-      <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="flex min-h-app items-center justify-center px-4">
         <div className="glass-card max-w-md p-6 text-center">
           <p className="text-red-200">{error}</p>
           <button
@@ -108,7 +108,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted">
+      <div className="flex min-h-app items-center justify-center text-muted">
         Checking session...
       </div>
     );
@@ -121,7 +121,7 @@ function PublicOnly({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth();
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted">
+      <div className="flex min-h-app items-center justify-center text-muted">
         Checking session...
       </div>
     );

@@ -3,6 +3,7 @@ const { createClient } = require("@supabase/supabase-js");
 const rateLimit = new Map();
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = 30;
+const BUSINESS_TZ = "Australia/Brisbane";
 
 function getClientIp(req) {
   const forwarded = req.headers["x-forwarded-for"];
@@ -54,6 +55,31 @@ function parseCoord(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Calendar date in Australia/Brisbane for business-day metrics. */
+function businessDate(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BUSINESS_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function sanitizeReferrer(value) {
+  const raw = String(value || "").trim().slice(0, 512);
+  if (!raw) return null;
+  // Ignore self-referrals (API / card page as Referer header)
+  try {
+    const url = new URL(raw);
+    if (/\/card\/?$/i.test(url.pathname) || /track-scan/i.test(url.pathname)) {
+      return null;
+    }
+  } catch {
+    /* keep raw string */
+  }
+  return raw;
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).end();
@@ -86,14 +112,16 @@ module.exports = async function handler(req, res) {
   }
 
   const sessionId = String(body?.session_id || "").trim().slice(0, 128);
+  const visitorId = String(body?.visitor_id || "").trim().slice(0, 128) || null;
   const source = normalizeSource(body?.source);
   const userAgent = String(req.headers["user-agent"] || "").slice(0, 512);
-  const referrer = String(req.headers.referer || body?.referrer || "").slice(0, 512);
+  // Prefer client-sent inbound referrer over the request Referer (usually the card URL)
+  const referrer =
+    sanitizeReferrer(body?.referrer) || sanitizeReferrer(req.headers.referer);
   const scannerTimezone = String(body?.timezone || "")
     .trim()
     .slice(0, 64) || null;
 
-  // Vercel edge geo (IP of the person who scanned)
   const country = (decodeHeader(req.headers["x-vercel-ip-country"]) || "").toUpperCase().slice(0, 8) || null;
   const region = (decodeHeader(req.headers["x-vercel-ip-country-region"]) || "").toUpperCase().slice(0, 32) || null;
   const city = (decodeHeader(req.headers["x-vercel-ip-city"]) || "").slice(0, 128) || null;
@@ -101,7 +129,7 @@ module.exports = async function handler(req, res) {
   const longitude = parseCoord(req.headers["x-vercel-ip-longitude"]);
 
   const now = new Date();
-  const scanDate = now.toISOString().slice(0, 10);
+  const scanDate = businessDate(now);
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -112,6 +140,7 @@ module.exports = async function handler(req, res) {
     scan_date: scanDate,
     source,
     session_id: sessionId || null,
+    visitor_id: visitorId,
     device_type: detectDeviceType(userAgent),
     country,
     region,
@@ -124,6 +153,11 @@ module.exports = async function handler(req, res) {
   });
 
   if (error) {
+    // Unique session_id — already counted this tab session
+    if (error.code === "23505") {
+      res.status(204).end();
+      return;
+    }
     console.error("track-scan insert failed:", error.message);
     res.status(500).end();
     return;

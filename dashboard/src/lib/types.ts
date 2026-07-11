@@ -6,6 +6,7 @@ export type ScanEvent = {
   scan_date: string;
   source: string;
   session_id: string | null;
+  visitor_id: string | null;
   device_type: string | null;
   country: string | null;
   region: string | null;
@@ -31,6 +32,7 @@ export type DailyScan = {
   scan_date: string;
   total_scans: number;
   unique_sessions: number;
+  qr_scans?: number;
 };
 
 export type TrendPoint = {
@@ -58,6 +60,7 @@ export type DashboardStats = {
   peakDay: { date: string; scans: number } | null;
   mobileShare: number;
   qrShare: number;
+  qrToday: number;
   bySource: BreakdownSlice[];
   byDevice: BreakdownSlice[];
   daily: DailyScan[];
@@ -67,6 +70,8 @@ export type DashboardStats = {
   period: TrendPeriod;
   changePercent: number;
 };
+
+export const BUSINESS_TIMEZONE = "Australia/Brisbane";
 
 export const PERIOD_DAYS: Record<TrendPeriod, number> = {
   "7d": 6,

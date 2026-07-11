@@ -7,7 +7,7 @@ import {
   resolveDisplayTimezone,
   sourceLabel,
 } from "../lib/format";
-import { filterScans } from "../lib/activity";
+import { filterScans, todayBusiness } from "../lib/activity";
 import { ActivityDetailSheet } from "./ActivityDetailSheet";
 
 const FILTERS: { id: ActivityFilter; label: string }[] = [
@@ -15,10 +15,6 @@ const FILTERS: { id: ActivityFilter; label: string }[] = [
   { id: "week", label: "Week" },
   { id: "all", label: "All" },
 ];
-
-function todayUtc() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function ActivityFilterToggle({
   value,
@@ -102,7 +98,7 @@ export function ActivityPage({
   const [selected, setSelected] = useState<ScanEvent | null>(null);
 
   const filtered = useMemo(
-    () => filterScans(recent, filter, todayUtc()),
+    () => filterScans(recent, filter, todayBusiness()),
     [recent, filter]
   );
 
@@ -115,7 +111,7 @@ export function ActivityPage({
       >
         <h1 className="font-display text-2xl font-semibold text-white">Activity</h1>
         <p className="mt-1 text-sm text-muted">
-          Where and when each person scanned, synced live.
+          Every visit, synced live. Days use Brisbane time.
         </p>
         <div className="mt-4 flex justify-center sm:justify-start">
           <ActivityFilterToggle value={filter} onChange={setFilter} />
@@ -134,7 +130,7 @@ export function ActivityPage({
           ))
         ) : (
           <div className="activity-card px-5 py-10 text-center text-sm text-muted">
-            No scans in this period yet.
+            No visits in this period yet.
           </div>
         )}
       </div>
@@ -192,7 +188,7 @@ export function ActivityPage({
               ) : (
                 <tr>
                   <td colSpan={4} className="px-5 py-10 text-center text-muted">
-                    No scans in this period yet.
+                    No visits in this period yet.
                   </td>
                 </tr>
               )}

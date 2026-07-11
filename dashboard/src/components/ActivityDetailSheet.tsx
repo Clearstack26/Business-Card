@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CardInteraction, ScanEvent } from "../lib/types";
 import {
@@ -13,8 +13,8 @@ import {
   buildSessionTimeline,
   countLinkClicks,
   isReturnVisit,
-  sessionVisitCounts,
 } from "../lib/activity";
+import { fetchSessionInteractions } from "../lib/supabase";
 
 function useBodyScrollLock(locked: boolean) {
   useEffect(() => {
@@ -61,6 +61,8 @@ export function ActivityDetailSheet({
   onClose: () => void;
 }) {
   useBodyScrollLock(open && Boolean(scan));
+  const [sessionInteractions, setSessionInteractions] = useState<CardInteraction[]>([]);
+  const [loadingJourney, setLoadingJourney] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -71,13 +73,39 @@ export function ActivityDetailSheet({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  useEffect(() => {
+    if (!open || !scan?.session_id) {
+      setSessionInteractions([]);
+      return;
+    }
+
+    let cancelled = false;
+    const cached = interactions.filter((row) => row.session_id === scan.session_id);
+    setSessionInteractions(cached);
+    setLoadingJourney(true);
+
+    fetchSessionInteractions(scan.session_id)
+      .then((rows) => {
+        if (!cancelled) setSessionInteractions(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setSessionInteractions(cached);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingJourney(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, scan?.session_id, scan?.id, interactions]);
+
   if (!scan) return null;
 
   const tz = resolveDisplayTimezone(scan);
   const when = formatScanWhen(scan.scanned_at, tz);
-  const visitCounts = sessionVisitCounts(allScans);
-  const returnVisit = isReturnVisit(scan, visitCounts, interactions);
-  const timeline = buildSessionTimeline(scan.session_id, allScans, interactions);
+  const returnVisit = isReturnVisit(scan, allScans);
+  const timeline = buildSessionTimeline(scan.session_id, allScans, sessionInteractions);
   const clickCount = countLinkClicks(timeline);
 
   const sheet = (
@@ -128,8 +156,8 @@ export function ActivityDetailSheet({
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="visit-badge">
-                    {returnVisit ? "Return visit" : "First visit"}
+                  <span className={`visit-badge${returnVisit ? " visit-badge--return" : ""}`}>
+                    {returnVisit ? "Return visitor" : "First visit"}
                   </span>
                   {clickCount > 0 ? (
                     <span className="visit-badge">
@@ -164,6 +192,7 @@ export function ActivityDetailSheet({
                   <div className="visit-card">
                     <dt className="visit-card__label">Location</dt>
                     <dd className="mt-1 font-medium">{formatScanLocation(scan)}</dd>
+                    <dd className="mt-1 text-[11px] text-muted">Approximate (IP-based)</dd>
                   </div>
                   {scan.referrer ? (
                     <div className="visit-card sm:col-span-2 lg:col-span-4">
@@ -180,9 +209,11 @@ export function ActivityDetailSheet({
                     Session timeline
                   </p>
                   <p className="mt-1 text-xs text-muted">
-                    Exact order of opens, taps, leaves, and returns.
+                    Land → view card → taps. Tab switches show as left / came back to tab.
                   </p>
-                  {timeline.length ? (
+                  {loadingJourney && !timeline.length ? (
+                    <p className="mt-3 text-sm text-muted">Loading journey...</p>
+                  ) : timeline.length ? (
                     <ol className="mt-3 space-y-2">
                       {timeline.map((entry, index) => {
                         if (entry.kind === "scan") {
@@ -196,7 +227,7 @@ export function ActivityDetailSheet({
                                 {index + 1}
                               </span>
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium">Opened card</p>
+                                <p className="text-sm font-medium">Landed on card</p>
                                 <p className="text-xs text-muted">
                                   {entryWhen.day} - {entryWhen.time}
                                 </p>
@@ -231,8 +262,8 @@ export function ActivityDetailSheet({
                     </ol>
                   ) : (
                     <p className="mt-3 text-sm text-muted">
-                      No journey events yet. Opens, taps, and leaves will appear here
-                      in order.
+                      No journey events yet. Lands, views, and taps will appear here in
+                      order.
                     </p>
                   )}
                 </div>

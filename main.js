@@ -104,19 +104,41 @@ function prefersReducedMotion() {
 }
 
 const SCAN_SESSION_KEY = "clearstack-card-scan-session";
+const VISITOR_KEY = "clearstack-card-visitor-id";
+const TRACK_QUEUE_KEY = "clearstack-track-queue";
+const OUTBOUND_ARM_MS = 5000;
+const MAX_QUEUE = 40;
+
+let outboundArmedUntil = 0;
+let suppressReturnFromLink = false;
+
+function newId(prefix) {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function getOrCreateScanSessionId() {
   try {
     const existing = sessionStorage.getItem(SCAN_SESSION_KEY);
     if (existing) return existing;
-    const id =
-      typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `sess-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const id = newId("sess");
     sessionStorage.setItem(SCAN_SESSION_KEY, id);
     return id;
   } catch {
-    return `sess-${Date.now()}`;
+    return newId("sess");
+  }
+}
+
+/** Durable visitor id across tabs/days (privacy-light, local only). */
+function getOrCreateVisitorId() {
+  try {
+    const existing = localStorage.getItem(VISITOR_KEY);
+    if (existing) return existing;
+    const id = newId("vis");
+    localStorage.setItem(VISITOR_KEY, id);
+    return id;
+  } catch {
+    return null;
   }
 }
 
@@ -132,8 +154,86 @@ function resolveScanSource() {
   }
 }
 
+function readQueue() {
+  try {
+    const raw = sessionStorage.getItem(TRACK_QUEUE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeQueue(items) {
+  try {
+    sessionStorage.setItem(TRACK_QUEUE_KEY, JSON.stringify(items.slice(-MAX_QUEUE)));
+  } catch {
+    /* ignore */
+  }
+}
+
+function enqueueTrack(url, payload) {
+  const queue = readQueue();
+  queue.push({ url, payload, at: Date.now() });
+  writeQueue(queue);
+}
+
+async function postJson(url, payload, { keepalive = true } = {}) {
+  if (typeof fetch !== "function") return false;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive,
+    });
+    if (res.ok || res.status === 204) return true;
+    if (res.status === 429 || res.status >= 500) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function flushTrackQueue() {
+  const queue = readQueue();
+  if (!queue.length) return;
+  const remaining = [];
+  for (const item of queue) {
+    const ok = await postJson(item.url, item.payload, { keepalive: false });
+    if (!ok) remaining.push(item);
+  }
+  writeQueue(remaining);
+}
+
+function sendInteraction(payload) {
+  const body = JSON.stringify(payload);
+
+  if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+    const blob = new Blob([body], { type: "application/json" });
+    if (navigator.sendBeacon("/api/track-interaction", blob)) return;
+  }
+
+  postJson("/api/track-interaction", payload).then((ok) => {
+    if (!ok) enqueueTrack("/api/track-interaction", payload);
+  });
+}
+
+function trackInteraction({ eventType, linkId, linkLabel }) {
+  if (typeof window === "undefined") return;
+
+  const sessionId = getOrCreateScanSessionId();
+  sendInteraction({
+    session_id: sessionId,
+    event_type: eventType,
+    link_id: linkId,
+    link_label: linkLabel || null,
+    occurred_at: new Date().toISOString(),
+  });
+}
+
 function trackCardScan() {
-  if (typeof window === "undefined" || typeof fetch !== "function") return;
+  if (typeof window === "undefined") return;
 
   const sessionId = getOrCreateScanSessionId();
   const dedupeKey = `clearstack-card-scan-sent:${sessionId}`;
@@ -151,57 +251,27 @@ function trackCardScan() {
     timezone = null;
   }
 
-  const payload = JSON.stringify({
+  const payload = {
     session_id: sessionId,
+    visitor_id: getOrCreateVisitorId(),
     source: resolveScanSource(),
     referrer: document.referrer || null,
     timezone,
-  });
+  };
 
-  fetch("/api/track-scan", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: payload,
-    keepalive: true,
-  }).catch(() => {
-    /* silent — never interrupt the card experience */
-  });
-}
-
-function sendInteraction(payload) {
-  const body = JSON.stringify(payload);
-
-  if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-    const blob = new Blob([body], { type: "application/json" });
-    const queued = navigator.sendBeacon("/api/track-interaction", blob);
-    if (queued) return;
-  }
-
-  if (typeof fetch !== "function") return;
-
-  fetch("/api/track-interaction", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-    keepalive: true,
-  }).catch(() => {
-    /* silent */
+  postJson("/api/track-scan", payload).then((ok) => {
+    if (!ok) {
+      try {
+        sessionStorage.removeItem(dedupeKey);
+      } catch {
+        /* ignore */
+      }
+      enqueueTrack("/api/track-scan", payload);
+    }
   });
 }
 
-function trackInteraction({ eventType, linkId, linkLabel }) {
-  if (typeof window === "undefined") return;
-
-  const sessionId = getOrCreateScanSessionId();
-  sendInteraction({
-    session_id: sessionId,
-    event_type: eventType,
-    link_id: linkId,
-    link_label: linkLabel || null,
-    occurred_at: new Date().toISOString(),
-  });
-}
-
+/** Fires when the person continues past the welcome gate and sees the card. */
 function trackCardOpen() {
   const sessionId = getOrCreateScanSessionId();
   const dedupeKey = `clearstack-card-open-sent:${sessionId}`;
@@ -215,7 +285,7 @@ function trackCardOpen() {
   trackInteraction({
     eventType: "card_open",
     linkId: "card_open",
-    linkLabel: "Opened card",
+    linkLabel: "Viewed card",
   });
 }
 
@@ -231,13 +301,24 @@ function trackCardReturn() {
   trackInteraction({
     eventType: "card_return",
     linkId: "card_return",
-    linkLabel: "Came back",
+    linkLabel: "Came back to tab",
   });
+}
+
+function armOutboundHop() {
+  outboundArmedUntil = Date.now() + OUTBOUND_ARM_MS;
+}
+
+function consumeOutboundArm() {
+  if (Date.now() >= outboundArmedUntil) return false;
+  outboundArmedUntil = 0;
+  return true;
 }
 
 function trackLinkClick(link) {
   const linkId = String(link?.id || "external").trim().toLowerCase();
   const linkLabel = String(link?.label || "").trim();
+  armOutboundHop();
   trackInteraction({
     eventType: "link_click",
     linkId,
@@ -254,14 +335,30 @@ function wireSessionLifecycle() {
   const markLeave = () => {
     if (leaveLock) return;
     leaveLock = true;
-    left = true;
-    trackCardLeave();
     window.setTimeout(() => {
       leaveLock = false;
     }, 800);
+
+    // Link taps hide the card (new tab / same-tab nav). Count the tap only — not leave/return.
+    if (consumeOutboundArm()) {
+      suppressReturnFromLink = true;
+      left = false;
+      return;
+    }
+
+    // One leave per away-cycle (ignore repeat hidden/pagehide while already away)
+    if (left) return;
+    left = true;
+    suppressReturnFromLink = false;
+    trackCardLeave();
   };
 
   const markReturn = () => {
+    if (suppressReturnFromLink) {
+      suppressReturnFromLink = false;
+      left = false;
+      return;
+    }
     if (!left) return;
     left = false;
     trackCardReturn();
@@ -273,6 +370,11 @@ function wireSessionLifecycle() {
   });
 
   window.addEventListener("pagehide", markLeave);
+  window.addEventListener("pageshow", () => {
+    flushTrackQueue();
+    if (document.visibilityState === "visible") markReturn();
+  });
+  window.setTimeout(flushTrackQueue, 1500);
 }
 
 function appendLinkRow(linksMount, link, { external, primary }) {
@@ -568,6 +670,8 @@ function revealCardStep(welcomeStep, cardStep) {
   welcomeStep.dataset.exiting = "1";
   if (continueBtn) continueBtn.disabled = true;
 
+  trackCardOpen();
+
   // Card sits underneath (same as ClearStack site under the loader)
   cardStep.hidden = false;
   cardStep.classList.add("is-visible");
@@ -691,8 +795,8 @@ function render(cfg) {
 async function init() {
   scrollCardToTop();
   trackCardScan();
-  trackCardOpen();
   wireSessionLifecycle();
+  flushTrackQueue();
   try {
     const res = await fetch("/site-config.json", { cache: "no-store" });
     if (!res.ok) throw new Error("Config not found");

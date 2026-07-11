@@ -21,8 +21,15 @@ export function OverviewPage({
       >
         <h1 className="font-display text-2xl font-semibold">Overview</h1>
         <p className="mt-1 text-sm text-muted">
-          Live sync from your business card. Every scan updates these metrics.
+          Live visits to your business card. Metrics use Brisbane business days.
         </p>
+        {stats.totalAllTime > 0 ? (
+          <p className="mt-2 text-xs text-muted">
+            {stats.qrShare}% from QR
+            {stats.today > 0 ? ` · ${stats.qrToday} QR today` : ""}
+            {stats.uniqueToday > 0 ? ` · ${stats.uniqueToday} unique today` : ""}
+          </p>
+        ) : null}
       </motion.div>
 
       <MetricRings

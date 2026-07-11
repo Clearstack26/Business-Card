@@ -1,19 +1,42 @@
 import type { ActivityFilter, CardInteraction, ScanEvent } from "./types";
+import { BUSINESS_TIMEZONE } from "./types";
 
-export function activityRangeStart(filter: ActivityFilter, todayUtc: string) {
-  if (filter === "today") return todayUtc;
+/** YYYY-MM-DD in the business timezone (Australia/Brisbane). */
+export function businessDate(isoOrDate: string | Date = new Date(), timeZone = BUSINESS_TIMEZONE) {
+  const date = typeof isoOrDate === "string" ? new Date(isoOrDate) : isoOrDate;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+export function todayBusiness() {
+  return businessDate(new Date());
+}
+
+export function daysAgoBusiness(days: number) {
+  const today = todayBusiness();
+  const d = new Date(`${today}T12:00:00+10:00`);
+  d.setDate(d.getDate() - days);
+  return businessDate(d);
+}
+
+export function activityRangeStart(filter: ActivityFilter, today: string) {
+  if (filter === "today") return today;
   if (filter === "week") {
-    const d = new Date(`${todayUtc}T00:00:00Z`);
+    const d = new Date(`${today}T12:00:00+10:00`);
     d.setUTCDate(d.getUTCDate() - 6);
-    return d.toISOString().slice(0, 10);
+    return businessDate(d);
   }
   return null;
 }
 
-export function filterScans(scans: ScanEvent[], filter: ActivityFilter, todayUtc: string) {
-  const start = activityRangeStart(filter, todayUtc);
+export function filterScans(scans: ScanEvent[], filter: ActivityFilter, today: string) {
+  const start = activityRangeStart(filter, today);
   if (!start) return scans;
-  return scans.filter((scan) => scan.scan_date >= start);
+  return scans.filter((scan) => businessDate(scan.scanned_at) >= start);
 }
 
 export function sessionVisitCounts(scans: ScanEvent[]) {
@@ -26,18 +49,21 @@ export function sessionVisitCounts(scans: ScanEvent[]) {
   return counts;
 }
 
-export function isReturnVisit(
-  scan: ScanEvent,
-  visitCounts: Map<string, number>,
-  interactions: CardInteraction[] = []
-) {
-  if (!scan.session_id) return false;
-  if ((visitCounts.get(scan.session_id) || 0) > 1) return true;
-  return interactions.some(
-    (row) =>
-      row.session_id === scan.session_id &&
-      (row.event_type === "card_return" || row.link_id === "card_return")
-  );
+/**
+ * True returning visitor: same durable visitor_id has an earlier visit.
+ * Tab focus (card_return) does NOT count as a return visit.
+ */
+export function isReturnVisit(scan: ScanEvent, allScans: ScanEvent[]) {
+  if (scan.visitor_id) {
+    const at = new Date(scan.scanned_at).getTime();
+    return allScans.some(
+      (row) =>
+        row.visitor_id === scan.visitor_id &&
+        row.id !== scan.id &&
+        new Date(row.scanned_at).getTime() < at
+    );
+  }
+  return false;
 }
 
 export type TimelineEntry =
@@ -61,15 +87,10 @@ export function buildSessionTimeline(
     interaction,
   }));
 
-  const hasOpenEvent = sessionInteractions.some(
-    (row) => row.event_type === "card_open" || row.link_id === "card_open"
-  );
-
-  if (!hasOpenEvent) {
-    for (const scan of scans) {
-      if (scan.session_id === sessionId) {
-        entries.push({ kind: "scan", at: scan.scanned_at, scan });
-      }
+  // Always include the visit/land event so the funnel is clear
+  for (const scan of scans) {
+    if (scan.session_id === sessionId) {
+      entries.push({ kind: "scan", at: scan.scanned_at, scan });
     }
   }
 
@@ -83,12 +104,24 @@ export function buildSessionTimeline(
 }
 
 export function countLinkClicks(timeline: TimelineEntry[]) {
-  const systemIds = new Set(["card_open", "card_leave", "card_return"]);
+  const systemIds = new Set([
+    "card_open",
+    "card_leave",
+    "card_return",
+    "card_continue",
+  ]);
   return timeline.filter((entry) => {
     if (entry.kind !== "event") return false;
     const type = String(entry.interaction.event_type || "").toLowerCase();
     if (type === "link_click") return true;
-    if (type === "card_open" || type === "card_leave" || type === "card_return") return false;
+    if (
+      type === "card_open" ||
+      type === "card_leave" ||
+      type === "card_return" ||
+      type === "card_continue"
+    ) {
+      return false;
+    }
     return !systemIds.has(entry.interaction.link_id);
   }).length;
 }

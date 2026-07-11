@@ -9,6 +9,7 @@ const ALLOWED_EVENT_TYPES = new Set([
   "card_open",
   "card_leave",
   "card_return",
+  "card_continue",
 ]);
 
 const ALLOWED_LINK_ID = /^[a-z0-9_-]{1,64}$/;

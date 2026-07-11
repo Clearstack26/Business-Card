@@ -86,15 +86,9 @@ function LiveBadge({ syncing }: { syncing: boolean }) {
 }
 
 function scrollPageToTop() {
-  const jump = () => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  };
-  jump();
-  requestAnimationFrame(jump);
-  window.setTimeout(jump, 50);
-  window.setTimeout(jump, 200);
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
 }
 
 export function DashboardShell({
@@ -136,7 +130,7 @@ export function DashboardShell({
   };
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-app">
       <div id="dashboard-top" aria-hidden className="h-0 w-0 overflow-hidden" />
       <Sidebar
         open={sidebarOpen}
@@ -155,7 +149,7 @@ export function DashboardShell({
         />
       ) : null}
 
-      <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pt-[max(1.25rem,env(safe-area-inset-top))] md:px-8 lg:px-10">
+      <main className="mx-auto min-h-app w-full max-w-7xl px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pt-[max(1.25rem,env(safe-area-inset-top))] md:px-8 lg:px-10">
         <header className="relative mb-5 flex flex-col items-center text-center sm:mb-8">
           {isPhone && !sidebarOpen ? (
             <TopMenuButton onClick={() => setSidebarOpen(true)} />

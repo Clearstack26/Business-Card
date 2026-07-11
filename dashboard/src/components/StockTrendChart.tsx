@@ -62,10 +62,9 @@ function useExpandLayout(expanded: boolean): ExpandLayout {
     };
 
     update();
-    window.addEventListener("resize", update);
+    // Do not listen to resize — mobile URL bar show/hide fires resize and causes layout clunk
     window.addEventListener("orientationchange", update);
     return () => {
-      window.removeEventListener("resize", update);
       window.removeEventListener("orientationchange", update);
     };
   }, [expanded]);
