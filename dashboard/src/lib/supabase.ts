@@ -1,6 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
-import type { DailyScan, DashboardStats, ScanEvent, TrendPeriod, TrendPoint } from "./types";
-import { PERIOD_DAYS } from "./types";
+import type {
+  BreakdownSlice,
+  DailyScan,
+  DashboardStats,
+  ScanEvent,
+  TrendPeriod,
+  TrendPoint,
+} from "./types";
+import { DEVICE_COLORS, PERIOD_DAYS, SOURCE_COLORS } from "./types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -76,13 +83,47 @@ function computeChangePercent(trend: TrendPoint[]) {
   return Math.round(((secondHalf - firstHalf) / firstHalf) * 100);
 }
 
+function sourceLabel(source: string) {
+  if (source === "qr") return "QR scan";
+  if (source === "referral") return "Referral";
+  return "Direct";
+}
+
+function deviceLabel(device: string) {
+  if (device === "mobile") return "Mobile";
+  if (device === "tablet") return "Tablet";
+  if (device === "desktop") return "Desktop";
+  return "Unknown";
+}
+
+function buildBreakdown(
+  rows: { key: string }[],
+  labelFn: (key: string) => string,
+  colorMap: Record<string, string>
+): BreakdownSlice[] {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const key = row.key || "unknown";
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .map(([key, value]) => ({
+      key,
+      name: labelFn(key),
+      value,
+      color: colorMap[key] || "#64748b",
+    }))
+    .sort((a, b) => b.value - a.value);
+}
+
 export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<DashboardStats> {
   const span = PERIOD_DAYS[period];
   const rangeStart = daysAgoUtc(span);
   const today = daysAgoUtc(0);
   const weekStart = daysAgoUtc(6);
 
-  const [dailyRes, recentRes] = await Promise.all([
+  const [dailyRes, recentRes, periodRes] = await Promise.all([
     supabase
       .from("business_card_scans_by_day")
       .select("scan_date, total_scans, unique_sessions")
@@ -95,13 +136,24 @@ export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<
       )
       .order("scanned_at", { ascending: false })
       .limit(50),
+    supabase
+      .from("qr_scan_events")
+      .select("source, device_type, scan_date")
+      .gte("scan_date", rangeStart)
+      .limit(5000),
   ]);
 
   if (dailyRes.error) throw dailyRes.error;
   if (recentRes.error) throw recentRes.error;
+  if (periodRes.error) throw periodRes.error;
 
   const daily = (dailyRes.data || []) as DailyScan[];
   const recent = (recentRes.data || []) as ScanEvent[];
+  const periodEvents = (periodRes.data || []) as {
+    source: string | null;
+    device_type: string | null;
+    scan_date: string;
+  }[];
   const trend = buildTrendSeries(daily, period);
 
   const todayRow = daily.find((row) => row.scan_date === today);
@@ -109,12 +161,47 @@ export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<
     .filter((row) => row.scan_date >= weekStart)
     .reduce((sum, row) => sum + row.total_scans, 0);
   const totalAll = daily.reduce((sum, row) => sum + row.total_scans, 0);
+  const activeDays = daily.filter((row) => row.total_scans > 0).length;
+  const avgDaily = activeDays ? Math.round((totalAll / activeDays) * 10) / 10 : 0;
+
+  let peakDay: { date: string; scans: number } | null = null;
+  for (const row of daily) {
+    if (!peakDay || row.total_scans > peakDay.scans) {
+      peakDay = { date: row.scan_date, scans: row.total_scans };
+    }
+  }
+  if (peakDay && peakDay.scans === 0) peakDay = null;
+
+  const bySource = buildBreakdown(
+    periodEvents.map((e) => ({ key: String(e.source || "direct").toLowerCase() })),
+    sourceLabel,
+    SOURCE_COLORS
+  );
+  const byDevice = buildBreakdown(
+    periodEvents.map((e) => ({ key: String(e.device_type || "unknown").toLowerCase() })),
+    deviceLabel,
+    DEVICE_COLORS
+  );
+
+  const periodCount = periodEvents.length || 1;
+  const mobileCount = periodEvents.filter(
+    (e) => String(e.device_type || "").toLowerCase() === "mobile"
+  ).length;
+  const qrCount = periodEvents.filter(
+    (e) => String(e.source || "").toLowerCase() === "qr"
+  ).length;
 
   return {
     today: todayRow?.total_scans || 0,
     week: weekTotal,
     total: totalAll,
     uniqueToday: todayRow?.unique_sessions || 0,
+    avgDaily,
+    peakDay,
+    mobileShare: Math.round((mobileCount / periodCount) * 100),
+    qrShare: Math.round((qrCount / periodCount) * 100),
+    bySource,
+    byDevice,
     daily,
     recent,
     trend,
@@ -123,4 +210,4 @@ export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<
   };
 }
 
-export type { DailyScan, DashboardStats, ScanEvent, TrendPeriod, TrendPoint };
+export type { DailyScan, DashboardStats, ScanEvent, TrendPeriod, TrendPoint, BreakdownSlice };

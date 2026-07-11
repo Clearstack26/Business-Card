@@ -25,6 +25,7 @@ body {
     radial-gradient(ellipse 500px 400px at 100% 25%, hsl(185 100% 55% / 0.19), transparent 70%),
     hsl(220 22% 7.5%);
   color: hsl(0 0% 98%);
+  -webkit-font-smoothing: antialiased;
 }
 
 .glass-card {
@@ -48,18 +49,17 @@ body {
 }
 
 .sidebar {
-  backdrop-filter: blur(8px);
-}
-
-@media (max-width: 1023px) {
-  .sidebar {
-    border-right: none;
-    border-bottom: 1px solid hsl(200 18% 22% / 0.8);
-  }
+  backdrop-filter: blur(12px);
 }
 
 input:focus-visible,
 button:focus-visible {
   outline: 2px solid hsl(185 100% 55%);
   outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .glass-card {
+    border-radius: 0.875rem;
+  }
 }

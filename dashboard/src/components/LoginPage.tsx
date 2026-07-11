@@ -35,9 +35,6 @@ export function LoginPage() {
           <h1 className="font-display text-2xl font-semibold tracking-tight">
             Business Card Analytics
           </h1>
-          <p className="mt-2 text-sm text-muted">
-            Sign in with your ClearStack portal credentials
-          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

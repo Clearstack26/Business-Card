@@ -98,83 +98,81 @@ export function StockTrendChart({
         </div>
       </div>
 
-      <div className="relative left-1/2 w-screen max-w-none -translate-x-1/2 lg:left-0 lg:w-full lg:translate-x-0">
-        <div className="h-[min(58vw,22rem)] sm:h-[20rem] lg:h-[22rem]">
-          {stats.trend.length ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={stats.trend}
-                margin={{ top: 12, right: 8, left: 0, bottom: 4 }}
-              >
-                <defs>
-                  <linearGradient id="scanTrendFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#1affff" stopOpacity={0.28} />
-                    <stop offset="100%" stopColor="#1affff" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  stroke="hsl(200 18% 22% / 0.28)"
-                  strokeDasharray="2 8"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="label"
-                  stroke="hsl(200 8% 78%)"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                  minTickGap={20}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  stroke="hsl(200 8% 78%)"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                  allowDecimals={false}
-                  width={28}
-                  domain={chartDomain(peak)}
-                />
-                <Tooltip
-                  content={<TrendTooltip />}
-                  cursor={{ stroke: "#1affff", strokeWidth: 1, strokeDasharray: "3 3" }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="cumulative"
-                  stroke="none"
-                  fill="url(#scanTrendFill)"
-                  isAnimationActive
-                  animationDuration={700}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="cumulative"
-                  name="Total scans"
-                  stroke="#1affff"
-                  strokeWidth={2.75}
-                  dot={false}
-                  activeDot={{ r: 5, fill: "#1affff", stroke: "#0f1218", strokeWidth: 2 }}
-                  isAnimationActive
-                  animationDuration={700}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="scans"
-                  name="Daily scans"
-                  stroke="hsl(200 100% 70% / 0.45)"
-                  strokeWidth={1.25}
-                  dot={false}
-                  strokeDasharray="4 5"
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted">
-              No scan data yet. When someone opens your card, the trend line will appear here.
-            </div>
-          )}
-        </div>
+      <div className="h-[min(52vw,20rem)] w-full sm:h-[20rem] lg:h-[22rem]">
+        {stats.trend.length ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart
+              data={stats.trend}
+              margin={{ top: 12, right: 10, left: -6, bottom: 4 }}
+            >
+              <defs>
+                <linearGradient id="scanTrendFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#1affff" stopOpacity={0.28} />
+                  <stop offset="100%" stopColor="#1affff" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                stroke="hsl(200 18% 22% / 0.28)"
+                strokeDasharray="2 8"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="label"
+                stroke="hsl(200 8% 78%)"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                minTickGap={20}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                stroke="hsl(200 8% 78%)"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                allowDecimals={false}
+                width={28}
+                domain={chartDomain(peak)}
+              />
+              <Tooltip
+                content={<TrendTooltip />}
+                cursor={{ stroke: "#1affff", strokeWidth: 1, strokeDasharray: "3 3" }}
+              />
+              <Area
+                type="monotone"
+                dataKey="cumulative"
+                stroke="none"
+                fill="url(#scanTrendFill)"
+                isAnimationActive
+                animationDuration={700}
+              />
+              <Line
+                type="monotone"
+                dataKey="cumulative"
+                name="Total scans"
+                stroke="#1affff"
+                strokeWidth={2.75}
+                dot={false}
+                activeDot={{ r: 5, fill: "#1affff", stroke: "#0f1218", strokeWidth: 2 }}
+                isAnimationActive
+                animationDuration={700}
+              />
+              <Line
+                type="monotone"
+                dataKey="scans"
+                name="Daily scans"
+                stroke="hsl(200 100% 70% / 0.45)"
+                strokeWidth={1.25}
+                dot={false}
+                strokeDasharray="4 5"
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted">
+            No scan data yet. When someone opens your card, the trend line will appear here.
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-4 border-t border-border/70 px-5 py-3 text-[11px] uppercase tracking-[0.14em] text-muted">

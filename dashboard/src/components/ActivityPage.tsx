@@ -19,11 +19,15 @@ function sourceLabel(source: string) {
 
 export function ActivityPage({ recent }: { recent: ScanEvent[] }) {
   return (
-    <div className="space-y-6">
-      <div>
+    <div className="mx-auto w-full max-w-7xl space-y-5 sm:space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center sm:text-left"
+      >
         <h1 className="font-display text-2xl font-semibold">Activity</h1>
         <p className="mt-1 text-sm text-muted">Most recent card opens, synced in real time.</p>
-      </div>
+      </motion.div>
 
       <motion.section
         initial={{ opacity: 0, y: 16 }}
@@ -34,23 +38,35 @@ export function ActivityPage({ recent }: { recent: ScanEvent[] }) {
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-border/70 text-[11px] uppercase tracking-[0.16em] text-muted">
               <tr>
-                <th className="px-5 py-3 font-medium">When</th>
-                <th className="px-5 py-3 font-medium">Source</th>
-                <th className="px-5 py-3 font-medium">Device</th>
-                <th className="px-5 py-3 font-medium">Location</th>
+                <th className="px-4 py-3 font-medium sm:px-5">When</th>
+                <th className="px-4 py-3 font-medium sm:px-5">Source</th>
+                <th className="px-4 py-3 font-medium sm:px-5">Device</th>
+                <th className="hidden px-4 py-3 font-medium sm:table-cell sm:px-5">Location</th>
               </tr>
             </thead>
             <tbody>
               {recent.length ? (
-                recent.map((scan) => (
-                  <tr key={scan.id} className="border-t border-border/50">
-                    <td className="px-5 py-3 whitespace-nowrap">{formatTimestamp(scan.scanned_at)}</td>
-                    <td className="px-5 py-3">{sourceLabel(scan.source || "direct")}</td>
-                    <td className="px-5 py-3 capitalize">{scan.device_type || "Unknown"}</td>
-                    <td className="px-5 py-3">
+                recent.map((scan, index) => (
+                  <motion.tr
+                    key={scan.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(index * 0.02, 0.3) }}
+                    className="border-t border-border/50 transition hover:bg-white/[0.03]"
+                  >
+                    <td className="whitespace-nowrap px-4 py-3 sm:px-5">
+                      {formatTimestamp(scan.scanned_at)}
+                    </td>
+                    <td className="px-4 py-3 sm:px-5">
+                      {sourceLabel(scan.source || "direct")}
+                    </td>
+                    <td className="px-4 py-3 capitalize sm:px-5">
+                      {scan.device_type || "Unknown"}
+                    </td>
+                    <td className="hidden px-4 py-3 sm:table-cell sm:px-5">
                       {[scan.city, scan.country].filter(Boolean).join(", ") || "—"}
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))
               ) : (
                 <tr>

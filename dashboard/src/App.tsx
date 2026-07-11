@@ -23,7 +23,7 @@ function ProtectedDashboard() {
       setError(err instanceof Error ? err.message : "Could not load analytics");
     } finally {
       setLoading(false);
-      window.setTimeout(() => setSyncing(false), 500);
+      window.setTimeout(() => setSyncing(false), 650);
     }
   }, [period]);
 
@@ -33,12 +33,12 @@ function ProtectedDashboard() {
   }, [period, loadStats]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => loadStats(period), 15000);
+    const interval = window.setInterval(() => loadStats(period), 12000);
     return () => window.clearInterval(interval);
   }, [loadStats, period]);
 
   useEffect(() => {
-    const subscription = supabase
+    const channel = supabase
       .channel("qr_scan_events_live")
       .on(
         "postgres_changes",
@@ -49,8 +49,14 @@ function ProtectedDashboard() {
       )
       .subscribe();
 
+    const onVisible = () => {
+      if (document.visibilityState === "visible") loadStats(period);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
-      subscription.unsubscribe();
+      channel.unsubscribe();
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [loadStats, period]);
 
