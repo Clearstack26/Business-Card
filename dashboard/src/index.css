@@ -534,10 +534,13 @@ body {
   color: #1affff;
 }
 
-input:focus-visible,
+input:focus-visible {
+  outline: none;
+  border-color: #1affff;
+}
+
 button:focus-visible {
-  outline: 2px solid hsl(185 100% 55%);
-  outline-offset: 2px;
+  outline: none;
 }
 
 @media (max-width: 640px) {
