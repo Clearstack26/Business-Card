@@ -1,4 +1,6 @@
 {
+  "buildCommand": "npm run vercel-build",
+  "installCommand": "npm install",
   "rewrites": [
     { "source": "/card", "destination": "/card.html" },
     { "source": "/admin", "destination": "/admin/index.html" },
