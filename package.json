@@ -3,11 +3,15 @@
   "private": true,
   "scripts": {
     "build:vcf": "node scripts/build-vcf.mjs",
+    "build:admin": "cd dashboard && npm install && npm run build",
     "prestart": "npm run build:vcf",
     "start": "serve . -l 3000",
     "preview": "serve . -l 3000",
     "vendor:qrcode": "esbuild node_modules/qrcode/lib/browser.js --bundle --platform=browser --format=iife --global-name=QRCode --minify --outfile=vendor/qrcode.min.js",
-    "vercel-build": "npm run vendor:qrcode && npm run build:vcf"
+    "vercel-build": "npm run vendor:qrcode && npm run build:vcf && npm run build:admin"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1"
   },
   "devDependencies": {
     "esbuild": "^0.21.5",

@@ -103,6 +103,63 @@ function prefersReducedMotion() {
   );
 }
 
+const SCAN_SESSION_KEY = "clearstack-card-scan-session";
+
+function getOrCreateScanSessionId() {
+  try {
+    const existing = sessionStorage.getItem(SCAN_SESSION_KEY);
+    if (existing) return existing;
+    const id =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `sess-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    sessionStorage.setItem(SCAN_SESSION_KEY, id);
+    return id;
+  } catch {
+    return `sess-${Date.now()}`;
+  }
+}
+
+function resolveScanSource() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const src = String(params.get("src") || "").trim().toLowerCase();
+    if (src === "qr" || src.startsWith("qr")) return "qr";
+    if (document.referrer) return "referral";
+    return "direct";
+  } catch {
+    return "direct";
+  }
+}
+
+function trackCardScan() {
+  if (typeof window === "undefined" || typeof fetch !== "function") return;
+
+  const sessionId = getOrCreateScanSessionId();
+  const dedupeKey = `clearstack-card-scan-sent:${sessionId}`;
+  try {
+    if (sessionStorage.getItem(dedupeKey) === "1") return;
+    sessionStorage.setItem(dedupeKey, "1");
+  } catch {
+    /* continue without dedupe storage */
+  }
+
+  const payload = JSON.stringify({
+    session_id: sessionId,
+    source: resolveScanSource(),
+    referrer: document.referrer || null,
+  });
+
+  fetch("/api/track-scan", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: payload,
+    keepalive: true,
+  }).catch(() => {
+    /* silent — never interrupt the card experience */
+  });
+}
+
 function appendLinkRow(linksMount, link, { external, primary }) {
   const li = document.createElement("li");
   li.className = "link-list__item";
@@ -517,6 +574,7 @@ function render(cfg) {
 
 async function init() {
   scrollCardToTop();
+  trackCardScan();
   try {
     const res = await fetch("/site-config.json", { cache: "no-store" });
     if (!res.ok) throw new Error("Config not found");
