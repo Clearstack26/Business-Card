@@ -44,6 +44,7 @@ function ProtectedDashboard() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "qr_scan_events" },
         () => {
+          // Full reload so Overview + Activity (time, source, device, location) stay in sync
           loadStats(period);
         }
       )
@@ -63,7 +64,7 @@ function ProtectedDashboard() {
   if (loading && !stats) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted">
-        Loading analytics…
+        Loading analytics...
       </div>
     );
   }
@@ -102,7 +103,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted">
-        Checking session…
+        Checking session...
       </div>
     );
   }
@@ -115,7 +116,7 @@ function PublicOnly({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted">
-        Checking session…
+        Checking session...
       </div>
     );
   }

@@ -75,7 +75,7 @@ export function LoginPage() {
             disabled={submitting}
             className="w-full rounded-lg bg-primary px-4 py-3 font-medium text-background transition disabled:opacity-60"
           >
-            {submitting ? "Signing in…" : "Sign in"}
+            {submitting ? "Signing in..." : "Sign in"}
           </motion.button>
         </form>
       </motion.div>

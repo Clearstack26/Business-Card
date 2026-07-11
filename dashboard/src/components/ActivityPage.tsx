@@ -17,6 +17,15 @@ function sourceLabel(source: string) {
   return "Direct";
 }
 
+function formatLocation(scan: ScanEvent) {
+  const city = String(scan.city || "").trim();
+  const country = String(scan.country || "").trim().toUpperCase();
+  if (city && country) return `${city}, ${country}`;
+  if (city) return city;
+  if (country) return country;
+  return "Unknown";
+}
+
 export function ActivityPage({ recent }: { recent: ScanEvent[] }) {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-5 sm:space-y-6">
@@ -26,7 +35,9 @@ export function ActivityPage({ recent }: { recent: ScanEvent[] }) {
         className="text-center sm:text-left"
       >
         <h1 className="font-display text-2xl font-semibold">Activity</h1>
-        <p className="mt-1 text-sm text-muted">Most recent card opens, synced in real time.</p>
+        <p className="mt-1 text-sm text-muted">
+          Most recent card opens, synced in real time.
+        </p>
       </motion.div>
 
       <motion.section
@@ -38,10 +49,10 @@ export function ActivityPage({ recent }: { recent: ScanEvent[] }) {
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-border/70 text-[11px] uppercase tracking-[0.16em] text-muted">
               <tr>
-                <th className="px-4 py-3 font-medium sm:px-5">When</th>
-                <th className="px-4 py-3 font-medium sm:px-5">Source</th>
-                <th className="px-4 py-3 font-medium sm:px-5">Device</th>
-                <th className="hidden px-4 py-3 font-medium sm:table-cell sm:px-5">Location</th>
+                <th className="px-3 py-3 font-medium sm:px-5">When</th>
+                <th className="px-3 py-3 font-medium sm:px-5">Source</th>
+                <th className="px-3 py-3 font-medium sm:px-5">Device</th>
+                <th className="px-3 py-3 font-medium sm:px-5">Location</th>
               </tr>
             </thead>
             <tbody>
@@ -54,18 +65,16 @@ export function ActivityPage({ recent }: { recent: ScanEvent[] }) {
                     transition={{ delay: Math.min(index * 0.02, 0.3) }}
                     className="border-t border-border/50 transition hover:bg-white/[0.03]"
                   >
-                    <td className="whitespace-nowrap px-4 py-3 sm:px-5">
+                    <td className="whitespace-nowrap px-3 py-3 sm:px-5">
                       {formatTimestamp(scan.scanned_at)}
                     </td>
-                    <td className="px-4 py-3 sm:px-5">
+                    <td className="px-3 py-3 sm:px-5">
                       {sourceLabel(scan.source || "direct")}
                     </td>
-                    <td className="px-4 py-3 capitalize sm:px-5">
+                    <td className="px-3 py-3 capitalize sm:px-5">
                       {scan.device_type || "Unknown"}
                     </td>
-                    <td className="hidden px-4 py-3 sm:table-cell sm:px-5">
-                      {[scan.city, scan.country].filter(Boolean).join(", ") || "—"}
-                    </td>
+                    <td className="px-3 py-3 sm:px-5">{formatLocation(scan)}</td>
                   </motion.tr>
                 ))
               ) : (

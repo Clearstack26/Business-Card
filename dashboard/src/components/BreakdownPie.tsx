@@ -93,7 +93,7 @@ export function BreakdownPie({
               );
             })
           ) : (
-            <li className="text-sm text-muted">Waiting for scans…</li>
+            <li className="text-sm text-muted">Waiting for scans...</li>
           )}
         </ul>
       </div>

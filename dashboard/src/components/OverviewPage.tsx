@@ -118,10 +118,10 @@ export function OverviewPage({
         />
         <InsightCard
           label="Peak day"
-          value={stats.peakDay ? String(stats.peakDay.scans) : "—"}
+          value={stats.peakDay ? String(stats.peakDay.scans) : "-"}
           detail={
             stats.peakDay
-              ? `${formatPeakDate(stats.peakDay.date)} · busiest day`
+              ? `${formatPeakDate(stats.peakDay.date)} - busiest day`
               : "No peak yet"
           }
           delay={0.12}

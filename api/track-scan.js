@@ -74,12 +74,22 @@ module.exports = async function handler(req, res) {
   const source = normalizeSource(body?.source);
   const userAgent = String(req.headers["user-agent"] || "").slice(0, 512);
   const referrer = String(req.headers.referer || body?.referrer || "").slice(0, 512);
-  const country = String(req.headers["x-vercel-ip-country"] || "").slice(0, 8) || null;
-  const city = String(
-    req.headers["x-vercel-ip-city"] ||
-      req.headers["x-vercel-ip-country-region"] ||
-      ""
-  ).slice(0, 128) || null;
+  const countryRaw = String(req.headers["x-vercel-ip-country"] || "").trim();
+  const regionRaw = String(req.headers["x-vercel-ip-country-region"] || "").trim();
+  const cityRaw = String(req.headers["x-vercel-ip-city"] || "").trim();
+
+  let city = null;
+  if (cityRaw) {
+    try {
+      city = decodeURIComponent(cityRaw).slice(0, 128);
+    } catch {
+      city = cityRaw.slice(0, 128);
+    }
+  } else if (regionRaw) {
+    city = regionRaw.slice(0, 128);
+  }
+
+  const country = countryRaw.slice(0, 8) || null;
 
   const now = new Date();
   const scanDate = now.toISOString().slice(0, 10);
