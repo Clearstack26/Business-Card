@@ -4,8 +4,8 @@
   "description": "Mathew Alexander - ClearStack Digital",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f1218",
-  "theme_color": "#0f1218",
+  "background_color": "#142028",
+  "theme_color": "#142028",
   "icons": [
     {
       "src": "/clearstack-logo.png",
