@@ -168,6 +168,113 @@ function trackCardScan() {
   });
 }
 
+function sendInteraction(payload) {
+  const body = JSON.stringify(payload);
+
+  if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+    const blob = new Blob([body], { type: "application/json" });
+    const queued = navigator.sendBeacon("/api/track-interaction", blob);
+    if (queued) return;
+  }
+
+  if (typeof fetch !== "function") return;
+
+  fetch("/api/track-interaction", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+    keepalive: true,
+  }).catch(() => {
+    /* silent */
+  });
+}
+
+function trackInteraction({ eventType, linkId, linkLabel }) {
+  if (typeof window === "undefined") return;
+
+  const sessionId = getOrCreateScanSessionId();
+  sendInteraction({
+    session_id: sessionId,
+    event_type: eventType,
+    link_id: linkId,
+    link_label: linkLabel || null,
+    occurred_at: new Date().toISOString(),
+  });
+}
+
+function trackCardOpen() {
+  const sessionId = getOrCreateScanSessionId();
+  const dedupeKey = `clearstack-card-open-sent:${sessionId}`;
+  try {
+    if (sessionStorage.getItem(dedupeKey) === "1") return;
+    sessionStorage.setItem(dedupeKey, "1");
+  } catch {
+    /* continue without dedupe storage */
+  }
+
+  trackInteraction({
+    eventType: "card_open",
+    linkId: "card_open",
+    linkLabel: "Opened card",
+  });
+}
+
+function trackCardLeave() {
+  trackInteraction({
+    eventType: "card_leave",
+    linkId: "card_leave",
+    linkLabel: "Left card",
+  });
+}
+
+function trackCardReturn() {
+  trackInteraction({
+    eventType: "card_return",
+    linkId: "card_return",
+    linkLabel: "Came back",
+  });
+}
+
+function trackLinkClick(link) {
+  const linkId = String(link?.id || "external").trim().toLowerCase();
+  const linkLabel = String(link?.label || "").trim();
+  trackInteraction({
+    eventType: "link_click",
+    linkId,
+    linkLabel: linkLabel || null,
+  });
+}
+
+function wireSessionLifecycle() {
+  if (typeof document === "undefined") return;
+
+  let left = false;
+  let leaveLock = false;
+
+  const markLeave = () => {
+    if (leaveLock) return;
+    leaveLock = true;
+    left = true;
+    trackCardLeave();
+    window.setTimeout(() => {
+      leaveLock = false;
+    }, 800);
+  };
+
+  const markReturn = () => {
+    if (!left) return;
+    left = false;
+    trackCardReturn();
+  };
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") markLeave();
+    else if (document.visibilityState === "visible") markReturn();
+  });
+
+  window.addEventListener("pagehide", markLeave);
+}
+
 function appendLinkRow(linksMount, link, { external, primary }) {
   const li = document.createElement("li");
   li.className = "link-list__item";
@@ -206,6 +313,7 @@ function appendLinkRow(linksMount, link, { external, primary }) {
   iconWrap.innerHTML = iconFor(link.id);
 
   a.append(text, iconWrap);
+  a.addEventListener("click", () => trackLinkClick(link));
   li.append(a);
   linksMount.append(li);
 }
@@ -583,6 +691,8 @@ function render(cfg) {
 async function init() {
   scrollCardToTop();
   trackCardScan();
+  trackCardOpen();
+  wireSessionLifecycle();
   try {
     const res = await fetch("/site-config.json", { cache: "no-store" });
     if (!res.ok) throw new Error("Config not found");

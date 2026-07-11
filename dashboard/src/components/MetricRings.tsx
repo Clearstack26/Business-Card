@@ -42,12 +42,15 @@ function MetricRing({
       transition={{ delay, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       className="flex flex-col items-center gap-2.5"
     >
-      <div className="relative" style={{ width: RING_SIZE, height: RING_SIZE }}>
+      <div
+        className="relative flex items-center justify-center"
+        style={{ width: RING_SIZE, height: RING_SIZE }}
+      >
         <svg
           width={RING_SIZE}
           height={RING_SIZE}
           viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
-          className="-rotate-90"
+          className="absolute inset-0 -rotate-90 overflow-visible"
           aria-hidden
         >
           <defs>
@@ -76,15 +79,12 @@ function MetricRing({
             strokeDashoffset={ready ? offset : RING_CIRCUMFERENCE}
             style={{
               transition: "stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1)",
-              filter: "drop-shadow(0 0 6px hsl(185 100% 55% / 0.35))",
             }}
           />
         </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-metrics text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-            <AnimatedNumber value={value} />
-          </span>
-        </div>
+        <span className="relative font-metrics text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+          <AnimatedNumber value={value} />
+        </span>
       </div>
       <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted">
         {label}
@@ -107,11 +107,11 @@ export function MetricRings({
   const peak = Math.max(today, week, month, total, 1);
 
   return (
-    <section className="flex flex-wrap items-start justify-center gap-x-8 gap-y-6 px-2 py-2 sm:gap-x-12 sm:py-4">
-      <MetricRing label="Today" value={today} fill={today / peak} delay={0.05} />
-      <MetricRing label="Week" value={week} fill={week / peak} delay={0.12} />
-      <MetricRing label="Month" value={month} fill={month / peak} delay={0.19} />
-      <MetricRing label="Total" value={total} fill={total / peak || 1} delay={0.26} />
+    <section className="mx-auto grid w-full max-w-[20rem] grid-cols-2 justify-items-center gap-x-5 gap-y-7 px-2 py-2 sm:max-w-xl sm:grid-cols-4 sm:gap-x-8 sm:py-4">
+      <MetricRing label="Today" value={today} fill={today > 0 ? today / peak : 0} delay={0.05} />
+      <MetricRing label="Week" value={week} fill={week > 0 ? week / peak : 0} delay={0.12} />
+      <MetricRing label="Month" value={month} fill={month > 0 ? month / peak : 0} delay={0.19} />
+      <MetricRing label="Total" value={total} fill={total > 0 ? total / peak : 0} delay={0.26} />
     </section>
   );
 }

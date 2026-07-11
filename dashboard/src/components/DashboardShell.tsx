@@ -1,9 +1,60 @@
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import type { DashboardStats, TrendPeriod } from "../lib/supabase";
 import { ActivityPage } from "./ActivityPage";
 import { OverviewPage } from "./OverviewPage";
 import { Sidebar, type NavItem } from "./Sidebar";
+
+function EdgeTab({
+  open,
+  onClick,
+  ariaLabel,
+}: {
+  open: boolean;
+  onClick: () => void;
+  ariaLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      aria-expanded={open}
+      onClick={onClick}
+      data-open={open ? "true" : "false"}
+      className="sidebar-edge-tab"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        className={["sidebar-edge-tab__icon", open ? "is-open" : ""].join(" ")}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        aria-hidden
+      >
+        <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
+function LiveBadge({ syncing }: { syncing: boolean }) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] uppercase tracking-[0.14em]",
+        "ring-1 ring-primary/55",
+        syncing ? "text-primary" : "text-muted",
+      ].join(" ")}
+    >
+      <span
+        className={[
+          "h-1.5 w-1.5 rounded-full bg-primary",
+          syncing ? "animate-pulse" : "",
+        ].join(" ")}
+      />
+      {syncing ? "Syncing" : "Live"}
+    </span>
+  );
+}
 
 export function DashboardShell({
   stats,
@@ -29,47 +80,34 @@ export function DashboardShell({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [active]);
+
+  const handleNavigate = (item: NavItem) => {
+    setActive(item);
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  };
+
   return (
     <div className="relative min-h-screen">
       <Sidebar
         open={sidebarOpen}
         active={active}
-        onNavigate={setActive}
+        onNavigate={handleNavigate}
         onSignOut={onSignOut}
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* Edge pull tab: only when closed, vertically centered like ClearStack admin */}
-      <AnimatePresence>
-        {!sidebarOpen ? (
-          <motion.button
-            key="sidebar-edge-tab"
-            type="button"
-            aria-label="Open menu"
-            aria-expanded={false}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -8 }}
-            transition={{ duration: 0.18 }}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setSidebarOpen(true)}
-            className="fixed left-0 top-1/2 z-[60] flex h-14 w-8 -translate-y-1/2 items-center justify-center rounded-r-xl border border-l-0 border-border/80 bg-card/95 text-muted shadow-xl backdrop-blur transition hover:border-primary/40 hover:text-primary pl-[env(safe-area-inset-left)]"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </motion.button>
-        ) : null}
-      </AnimatePresence>
+      <EdgeTab
+        open={sidebarOpen}
+        onClick={() => setSidebarOpen((v) => !v)}
+        ariaLabel={sidebarOpen ? "Close menu" : "Open menu"}
+      />
 
-      <main className="min-h-screen px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] pl-10 sm:px-6 sm:pl-12 md:px-8 lg:px-10 lg:pl-12">
+      <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-6 md:px-8 lg:px-10">
         <header className="mb-5 flex flex-col items-center text-center sm:mb-8">
           <div className="flex flex-col items-center gap-3">
             <img
@@ -85,30 +123,15 @@ export function DashboardShell({
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <span
-              className={[
-                "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.14em]",
-                syncing
-                  ? "border-primary/40 text-primary"
-                  : "border-border/70 text-muted",
-              ].join(" ")}
-            >
-              <span
-                className={[
-                  "h-1.5 w-1.5 rounded-full bg-primary",
-                  syncing ? "animate-pulse" : "",
-                ].join(" ")}
-              />
-              {syncing ? "Syncing" : "Live"}
-            </span>
+          <div className="mt-4">
+            <LiveBadge syncing={syncing} />
           </div>
         </header>
 
         {active === "overview" ? (
           <OverviewPage stats={stats} period={period} onPeriodChange={onPeriodChange} />
         ) : (
-          <ActivityPage recent={stats.recent} />
+          <ActivityPage recent={stats.recent} interactions={stats.interactions} />
         )}
       </main>
     </div>

@@ -8,7 +8,7 @@ import { fetchDashboardStats, supabase, type DashboardStats, type TrendPeriod } 
 function ProtectedDashboard() {
   const { signOut } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [period, setPeriod] = useState<TrendPeriod>("30d");
+  const [period, setPeriod] = useState<TrendPeriod>("7d");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -44,7 +44,13 @@ function ProtectedDashboard() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "qr_scan_events" },
         () => {
-          // Full reload so Overview + Activity (time, source, device, location) stay in sync
+          loadStats(period);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "card_interactions" },
+        () => {
           loadStats(period);
         }
       )

@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type {
   BreakdownSlice,
+  CardInteraction,
   DailyScan,
   DashboardStats,
   ScanEvent,
@@ -18,8 +19,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "", {
   auth: {
-    persistSession: false,
-    autoRefreshToken: false,
+    persistSession: true,
+    autoRefreshToken: true,
     detectSessionInUrl: false,
     storage: {
       getItem: (key) => sessionStorage.getItem(key),
@@ -117,14 +118,14 @@ function buildBreakdown(
     .sort((a, b) => b.value - a.value);
 }
 
-export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<DashboardStats> {
+export async function fetchDashboardStats(period: TrendPeriod = "7d"): Promise<DashboardStats> {
   const span = PERIOD_DAYS[period];
   const rangeStart = daysAgoUtc(span);
   const today = daysAgoUtc(0);
   const weekStart = daysAgoUtc(6);
   const monthStart = daysAgoUtc(29);
 
-  const [dailyRes, recentRes, periodRes, monthDailyRes, allTimeRes] = await Promise.all([
+  const [dailyRes, recentRes, interactionsRes, periodRes, monthDailyRes, allTimeRes] = await Promise.all([
     supabase
       .from("business_card_scans_by_day")
       .select("scan_date, total_scans, unique_sessions")
@@ -136,7 +137,12 @@ export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<
         "id, scanned_at, scan_date, source, session_id, device_type, country, region, city, latitude, longitude, scanner_timezone, referrer"
       )
       .order("scanned_at", { ascending: false })
-      .limit(50),
+      .limit(250),
+    supabase
+      .from("card_interactions")
+      .select("id, session_id, event_type, link_id, link_label, occurred_at")
+      .order("occurred_at", { ascending: false })
+      .limit(500),
     supabase
       .from("qr_scan_events")
       .select("source, device_type, scan_date")
@@ -151,12 +157,14 @@ export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<
 
   if (dailyRes.error) throw dailyRes.error;
   if (recentRes.error) throw recentRes.error;
+  if (interactionsRes.error) throw interactionsRes.error;
   if (periodRes.error) throw periodRes.error;
   if (monthDailyRes.error) throw monthDailyRes.error;
   if (allTimeRes.error) throw allTimeRes.error;
 
   const daily = (dailyRes.data || []) as DailyScan[];
   const recent = (recentRes.data || []) as ScanEvent[];
+  const interactions = (interactionsRes.data || []) as CardInteraction[];
   const periodEvents = (periodRes.data || []) as {
     source: string | null;
     device_type: string | null;
@@ -164,19 +172,20 @@ export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<
   }[];
   const monthDaily = (monthDailyRes.data || []) as { scan_date: string; total_scans: number }[];
   const trend = buildTrendSeries(daily, period);
+  const currentDaily = daily.filter((row) => row.scan_date >= rangeStart);
 
-  const todayRow = daily.find((row) => row.scan_date === today);
-  const weekTotal = daily
+  const todayRow = currentDaily.find((row) => row.scan_date === today);
+  const weekTotal = currentDaily
     .filter((row) => row.scan_date >= weekStart)
     .reduce((sum, row) => sum + row.total_scans, 0);
   const monthTotal = monthDaily.reduce((sum, row) => sum + row.total_scans, 0);
-  const totalAll = daily.reduce((sum, row) => sum + row.total_scans, 0);
+  const totalAll = currentDaily.reduce((sum, row) => sum + row.total_scans, 0);
   const totalAllTime = allTimeRes.count ?? totalAll;
-  const activeDays = daily.filter((row) => row.total_scans > 0).length;
+  const activeDays = currentDaily.filter((row) => row.total_scans > 0).length;
   const avgDaily = activeDays ? Math.round((totalAll / activeDays) * 10) / 10 : 0;
 
   let peakDay: { date: string; scans: number } | null = null;
-  for (const row of daily) {
+  for (const row of currentDaily) {
     if (!peakDay || row.total_scans > peakDay.scans) {
       peakDay = { date: row.scan_date, scans: row.total_scans };
     }
@@ -215,12 +224,13 @@ export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<
     qrShare: Math.round((qrCount / periodCount) * 100),
     bySource,
     byDevice,
-    daily,
+    daily: currentDaily,
     recent,
+    interactions,
     trend,
     period,
     changePercent: computeChangePercent(trend),
   };
 }
 
-export type { DailyScan, DashboardStats, ScanEvent, TrendPeriod, TrendPoint, BreakdownSlice };
+export type { CardInteraction, DailyScan, DashboardStats, ScanEvent, TrendPeriod, TrendPoint, BreakdownSlice };

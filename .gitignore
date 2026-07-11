@@ -3,6 +3,10 @@ dashboard/node_modules/
 .env
 .env.local
 .tmp-session.json
+.tmp-inject.js
+.tmp-browser-eval.js
+.tmp-*.json
+.tmp-*.js
 dashboard/.env.production
 dashboard/.env.production.local
 .vercel

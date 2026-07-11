@@ -16,6 +16,17 @@ export type ScanEvent = {
   referrer: string | null;
 };
 
+export type CardInteraction = {
+  id: string;
+  session_id: string;
+  event_type: string;
+  link_id: string;
+  link_label: string | null;
+  occurred_at: string;
+};
+
+export type ActivityFilter = "today" | "week" | "all";
+
 export type DailyScan = {
   scan_date: string;
   total_scans: number;
@@ -51,6 +62,7 @@ export type DashboardStats = {
   byDevice: BreakdownSlice[];
   daily: DailyScan[];
   recent: ScanEvent[];
+  interactions: CardInteraction[];
   trend: TrendPoint[];
   period: TrendPeriod;
   changePercent: number;

@@ -71,3 +71,43 @@ export function sourceLabel(source: string) {
   if (source === "referral") return "Referral";
   return "Direct";
 }
+
+const LINK_LABELS: Record<string, string> = {
+  email: "Email",
+  linkedin: "LinkedIn",
+  book: "Book a call",
+  typeform: "Typeform",
+  website: "Website",
+  portfolio: "Portfolio",
+  external: "External link",
+  card_open: "Opened card",
+  card_leave: "Left card",
+  card_return: "Came back",
+};
+
+export function interactionLabel(interaction: {
+  link_id: string;
+  link_label?: string | null;
+  event_type?: string;
+}) {
+  const type = String(interaction.event_type || "").toLowerCase();
+  if (type === "card_open" || interaction.link_id === "card_open") return "Opened card";
+  if (type === "card_leave" || interaction.link_id === "card_leave") return "Left card";
+  if (type === "card_return" || interaction.link_id === "card_return") return "Came back";
+
+  const custom = String(interaction.link_label || "").trim();
+  if (custom) return custom;
+  return LINK_LABELS[interaction.link_id] || interaction.link_id;
+}
+
+export function interactionTitle(interaction: {
+  link_id: string;
+  link_label?: string | null;
+  event_type?: string;
+}) {
+  const type = String(interaction.event_type || "").toLowerCase();
+  if (type === "card_open" || interaction.link_id === "card_open") return "Opened card";
+  if (type === "card_leave" || interaction.link_id === "card_leave") return "Left card";
+  if (type === "card_return" || interaction.link_id === "card_return") return "Came back";
+  return `Tapped ${interactionLabel(interaction)}`;
+}

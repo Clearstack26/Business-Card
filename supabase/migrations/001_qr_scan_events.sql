@@ -33,7 +33,9 @@ create policy "qr_scan_events_select_authenticated"
   using (true);
 
 -- Daily aggregation view for trend charts
-create or replace view public.business_card_scans_by_day as
+create or replace view public.business_card_scans_by_day
+with (security_invoker = true)
+as
 select
   scan_date,
   count(*)::int as total_scans,

@@ -11,6 +11,7 @@
     "vercel-build": "npm run vendor:qrcode && npm run build:vcf",
     "vercel-build:full": "npm run vendor:qrcode && npm run build:vcf && npm run build:admin",
     "simulate:scans": "node scripts/simulate-public-scans.mjs",
+    "simulate:interactions": "node scripts/simulate-interactions.mjs",
     "verify:dashboard": "node scripts/verify-dashboard-data.mjs"
   },
   "dependencies": {

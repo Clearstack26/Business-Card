@@ -1,8 +1,25 @@
 /**
- * Simulates multiple people scanning the shirt QR in public.
- * Each scan = unique session, mobile user-agent, source=qr.
+ * DEV ONLY — simulates public QR scans.
+ * Refuses production unless ALLOW_PROD_SIMULATE=1 is set.
  */
-const BASE = process.env.CARD_URL || "https://business-card-mathew.vercel.app";
+const BASE = process.env.CARD_URL || "http://localhost:3000";
+const PROD_HOST = "business-card-mathew.vercel.app";
+
+function isProdTarget(url) {
+  try {
+    return new URL(url).hostname === PROD_HOST;
+  } catch {
+    return String(url).includes(PROD_HOST);
+  }
+}
+
+if (isProdTarget(BASE) && process.env.ALLOW_PROD_SIMULATE !== "1") {
+  console.error(
+    "Refusing to simulate against production.\n" +
+      "Set CARD_URL to a local/preview URL, or ALLOW_PROD_SIMULATE=1 to override."
+  );
+  process.exit(1);
+}
 
 const MOBILE_UAS = [
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
@@ -38,15 +55,14 @@ console.log(`Simulating ${count} public shirt QR scans → ${BASE}/api/track-sca
 
 const results = await Promise.all(
   Array.from({ length: count }, (_, i) =>
-    postScan(`public-shirt-${stamp}-${i + 1}`, i).then((status) => ({ i: i + 1, status }))
+    postScan(`dev-sim-${stamp}-${i}`, i).then((status) => ({ i, status }))
   )
 );
 
-const ok = results.filter((r) => r.status === 204).length;
-const failed = results.filter((r) => r.status !== 204);
-
-console.log(`Done: ${ok}/${count} recorded (HTTP 204)`);
-if (failed.length) {
-  console.error("Failures:", failed);
-  process.exit(1);
+const ok = results.filter((row) => row.status === 204).length;
+console.log(`Done: ${ok}/${results.length} scans recorded (HTTP 204)`);
+for (const row of results) {
+  console.log(`  - scan ${row.i + 1}: ${row.status}`);
 }
+
+if (ok !== results.length) process.exit(1);
