@@ -2,3 +2,7 @@ node_modules/
 dashboard/node_modules/
 .env
 .env.local
+dashboard/.env.production
+dashboard/.env.production.local
+.vercel
+supabase/.temp/
