@@ -39,7 +39,9 @@ export type BreakdownSlice = {
 export type DashboardStats = {
   today: number;
   week: number;
+  month: number;
   total: number;
+  totalAllTime: number;
   uniqueToday: number;
   avgDaily: number;
   peakDay: { date: string; scans: number } | null;

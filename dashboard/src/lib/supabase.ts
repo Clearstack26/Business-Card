@@ -122,8 +122,9 @@ export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<
   const rangeStart = daysAgoUtc(span);
   const today = daysAgoUtc(0);
   const weekStart = daysAgoUtc(6);
+  const monthStart = daysAgoUtc(29);
 
-  const [dailyRes, recentRes, periodRes] = await Promise.all([
+  const [dailyRes, recentRes, periodRes, monthDailyRes, allTimeRes] = await Promise.all([
     supabase
       .from("business_card_scans_by_day")
       .select("scan_date, total_scans, unique_sessions")
@@ -141,11 +142,18 @@ export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<
       .select("source, device_type, scan_date")
       .gte("scan_date", rangeStart)
       .limit(5000),
+    supabase
+      .from("business_card_scans_by_day")
+      .select("scan_date, total_scans")
+      .gte("scan_date", monthStart),
+    supabase.from("qr_scan_events").select("id", { count: "exact", head: true }),
   ]);
 
   if (dailyRes.error) throw dailyRes.error;
   if (recentRes.error) throw recentRes.error;
   if (periodRes.error) throw periodRes.error;
+  if (monthDailyRes.error) throw monthDailyRes.error;
+  if (allTimeRes.error) throw allTimeRes.error;
 
   const daily = (dailyRes.data || []) as DailyScan[];
   const recent = (recentRes.data || []) as ScanEvent[];
@@ -154,13 +162,16 @@ export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<
     device_type: string | null;
     scan_date: string;
   }[];
+  const monthDaily = (monthDailyRes.data || []) as { scan_date: string; total_scans: number }[];
   const trend = buildTrendSeries(daily, period);
 
   const todayRow = daily.find((row) => row.scan_date === today);
   const weekTotal = daily
     .filter((row) => row.scan_date >= weekStart)
     .reduce((sum, row) => sum + row.total_scans, 0);
+  const monthTotal = monthDaily.reduce((sum, row) => sum + row.total_scans, 0);
   const totalAll = daily.reduce((sum, row) => sum + row.total_scans, 0);
+  const totalAllTime = allTimeRes.count ?? totalAll;
   const activeDays = daily.filter((row) => row.total_scans > 0).length;
   const avgDaily = activeDays ? Math.round((totalAll / activeDays) * 10) / 10 : 0;
 
@@ -194,7 +205,9 @@ export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<
   return {
     today: todayRow?.total_scans || 0,
     week: weekTotal,
+    month: monthTotal,
     total: totalAll,
+    totalAllTime,
     uniqueToday: todayRow?.unique_sessions || 0,
     avgDaily,
     peakDay,

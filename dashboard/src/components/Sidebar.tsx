@@ -51,23 +51,23 @@ export function Sidebar({
             transition={{ type: "spring", stiffness: 360, damping: 34 }}
             className="sidebar fixed inset-y-0 left-0 z-50 flex w-[min(20rem,88vw)] flex-col border-r border-border/80 bg-[hsl(220_18%_9%/0.98)] px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] shadow-2xl sm:w-80"
           >
-            <div className="mb-8 flex items-center justify-between gap-3 px-1">
-              <div className="min-w-0">
-                <p className="font-display text-sm font-semibold leading-tight">Navigation</p>
-                <p className="text-[11px] text-muted">Card analytics</p>
-              </div>
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={onClose}
-                aria-label="Collapse sidebar"
-                className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-muted transition hover:border-primary/40 hover:text-foreground"
-              >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </motion.button>
+            {/* Close tab on the outer (right) middle edge of the open drawer */}
+            <motion.button
+              type="button"
+              aria-label="Close menu"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={onClose}
+              className="absolute top-1/2 -right-8 z-[61] flex h-14 w-8 -translate-y-1/2 items-center justify-center rounded-r-xl border border-l-0 border-border/80 bg-[hsl(220_18%_9%/0.98)] text-muted shadow-xl transition hover:border-primary/40 hover:text-primary"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </motion.button>
+
+            <div className="mb-8 px-1">
+              <p className="font-display text-sm font-semibold leading-tight">Navigation</p>
+              <p className="text-[11px] text-muted">Card analytics</p>
             </div>
 
             <nav className="flex flex-1 flex-col gap-2">
