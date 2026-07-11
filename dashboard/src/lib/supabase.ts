@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import type { DailyScan, DashboardStats, ScanEvent, TrendPeriod, TrendPoint } from "./types";
+import { PERIOD_DAYS } from "./types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -20,35 +22,6 @@ export const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "", {
   },
 });
 
-export type ScanEvent = {
-  id: string;
-  scanned_at: string;
-  scan_date: string;
-  source: string;
-  session_id: string | null;
-  device_type: string | null;
-  country: string | null;
-  city: string | null;
-  referrer: string | null;
-};
-
-export type DailyScan = {
-  scan_date: string;
-  total_scans: number;
-  unique_sessions: number;
-};
-
-export type DashboardStats = {
-  today: number;
-  week: number;
-  total: number;
-  uniqueToday: number;
-  daily: DailyScan[];
-  recent: ScanEvent[];
-  deviceBreakdown: { name: string; value: number }[];
-  sourceBreakdown: { name: string; value: number }[];
-};
-
 function startOfUtcDay(date = new Date()) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
@@ -59,29 +32,61 @@ function daysAgoUtc(days: number) {
   return d.toISOString().slice(0, 10);
 }
 
-function countByField<T extends string>(
-  items: T[],
-  labels?: Record<string, string>
-) {
-  const map = new Map<string, number>();
-  for (const raw of items) {
-    const key = String(raw || "unknown").trim() || "unknown";
-    const label = labels?.[key] || key.charAt(0).toUpperCase() + key.slice(1);
-    map.set(label, (map.get(label) || 0) + 1);
+function formatTrendLabel(dateStr: string, period: TrendPeriod) {
+  const date = new Date(`${dateStr}T00:00:00Z`);
+  if (period === "1y") {
+    return date.toLocaleDateString(undefined, { month: "short" });
   }
-  return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+  if (period === "90d") {
+    return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+  return date.toLocaleDateString(undefined, { weekday: "short", day: "numeric" });
 }
 
-export async function fetchDashboardStats(): Promise<DashboardStats> {
-  const thirtyDaysAgo = daysAgoUtc(29);
+function buildTrendSeries(daily: DailyScan[], period: TrendPeriod): TrendPoint[] {
+  const span = PERIOD_DAYS[period];
+  const start = daysAgoUtc(span);
+  const byDate = new Map(daily.map((row) => [row.scan_date, row.total_scans]));
+
+  const points: TrendPoint[] = [];
+  let cumulative = 0;
+
+  for (let offset = span; offset >= 0; offset -= 1) {
+    const date = daysAgoUtc(offset);
+    if (date < start) continue;
+    const scans = byDate.get(date) || 0;
+    cumulative += scans;
+    points.push({
+      date,
+      label: formatTrendLabel(date, period),
+      scans,
+      cumulative,
+    });
+  }
+
+  return points;
+}
+
+function computeChangePercent(trend: TrendPoint[]) {
+  if (trend.length < 2) return 0;
+  const midpoint = Math.floor(trend.length / 2);
+  const firstHalf = trend.slice(0, midpoint).reduce((sum, p) => sum + p.scans, 0);
+  const secondHalf = trend.slice(midpoint).reduce((sum, p) => sum + p.scans, 0);
+  if (firstHalf === 0) return secondHalf > 0 ? 100 : 0;
+  return Math.round(((secondHalf - firstHalf) / firstHalf) * 100);
+}
+
+export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<DashboardStats> {
+  const span = PERIOD_DAYS[period];
+  const rangeStart = daysAgoUtc(span);
   const today = daysAgoUtc(0);
   const weekStart = daysAgoUtc(6);
 
-  const [dailyRes, recentRes, allForBreakdownRes] = await Promise.all([
+  const [dailyRes, recentRes] = await Promise.all([
     supabase
       .from("business_card_scans_by_day")
       .select("scan_date, total_scans, unique_sessions")
-      .gte("scan_date", thirtyDaysAgo)
+      .gte("scan_date", rangeStart)
       .order("scan_date", { ascending: true }),
     supabase
       .from("qr_scan_events")
@@ -89,23 +94,15 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
         "id, scanned_at, scan_date, source, session_id, device_type, country, city, referrer"
       )
       .order("scanned_at", { ascending: false })
-      .limit(25),
-    supabase
-      .from("qr_scan_events")
-      .select("source, device_type")
-      .gte("scan_date", thirtyDaysAgo),
+      .limit(50),
   ]);
 
   if (dailyRes.error) throw dailyRes.error;
   if (recentRes.error) throw recentRes.error;
-  if (allForBreakdownRes.error) throw allForBreakdownRes.error;
 
   const daily = (dailyRes.data || []) as DailyScan[];
   const recent = (recentRes.data || []) as ScanEvent[];
-  const breakdownEvents = (allForBreakdownRes.data || []) as Pick<
-    ScanEvent,
-    "source" | "device_type"
-  >[];
+  const trend = buildTrendSeries(daily, period);
 
   const todayRow = daily.find((row) => row.scan_date === today);
   const weekTotal = daily
@@ -120,12 +117,10 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
     uniqueToday: todayRow?.unique_sessions || 0,
     daily,
     recent,
-    deviceBreakdown: countByField(
-      breakdownEvents.map((e) => e.device_type || "unknown")
-    ),
-    sourceBreakdown: countByField(
-      breakdownEvents.map((e) => e.source || "direct"),
-      { qr: "QR scan", referral: "Referral", direct: "Direct" }
-    ),
+    trend,
+    period,
+    changePercent: computeChangePercent(trend),
   };
 }
+
+export type { DailyScan, DashboardStats, ScanEvent, TrendPeriod, TrendPoint };

@@ -1,19 +1,20 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import { DashboardPage } from "./components/DashboardPage";
+import { DashboardShell } from "./components/DashboardShell";
 import { LoginPage } from "./components/LoginPage";
 import { useAuth } from "./lib/auth";
-import { fetchDashboardStats, supabase, type DashboardStats } from "./lib/supabase";
+import { fetchDashboardStats, supabase, type DashboardStats, type TrendPeriod } from "./lib/supabase";
 
 function ProtectedDashboard() {
   const { signOut } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [period, setPeriod] = useState<TrendPeriod>("30d");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadStats = useCallback(async () => {
+  const loadStats = useCallback(async (nextPeriod: TrendPeriod = period) => {
     try {
-      const data = await fetchDashboardStats();
+      const data = await fetchDashboardStats(nextPeriod);
       setStats(data);
       setError(null);
     } catch (err) {
@@ -21,13 +22,17 @@ function ProtectedDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [period]);
 
   useEffect(() => {
-    loadStats();
-    const interval = window.setInterval(loadStats, 15000);
+    setLoading(true);
+    loadStats(period);
+  }, [period, loadStats]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => loadStats(period), 15000);
     return () => window.clearInterval(interval);
-  }, [loadStats]);
+  }, [loadStats, period]);
 
   useEffect(() => {
     const subscription = supabase
@@ -36,7 +41,7 @@ function ProtectedDashboard() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "qr_scan_events" },
         () => {
-          loadStats();
+          loadStats(period);
         }
       )
       .subscribe();
@@ -44,9 +49,9 @@ function ProtectedDashboard() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [loadStats]);
+  }, [loadStats, period]);
 
-  if (loading) {
+  if (loading && !stats) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted">
         Loading analytics…
@@ -54,13 +59,13 @@ function ProtectedDashboard() {
     );
   }
 
-  if (error) {
+  if (error && !stats) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="glass-card max-w-md p-6 text-center">
           <p className="text-red-200">{error}</p>
           <button
-            onClick={loadStats}
+            onClick={() => loadStats(period)}
             className="mt-4 rounded-lg bg-primary px-4 py-2 text-background"
           >
             Retry
@@ -72,7 +77,14 @@ function ProtectedDashboard() {
 
   if (!stats) return null;
 
-  return <DashboardPage stats={stats} onSignOut={signOut} />;
+  return (
+    <DashboardShell
+      stats={stats}
+      period={period}
+      onPeriodChange={setPeriod}
+      onSignOut={signOut}
+    />
+  );
 }
 
 function RequireAuth({ children }: { children: ReactNode }) {
