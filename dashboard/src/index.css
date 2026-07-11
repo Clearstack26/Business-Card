@@ -47,6 +47,17 @@ body {
   color: transparent;
 }
 
+.sidebar {
+  backdrop-filter: blur(8px);
+}
+
+@media (max-width: 1023px) {
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid hsl(200 18% 22% / 0.8);
+  }
+}
+
 input:focus-visible,
 button:focus-visible {
   outline: 2px solid hsl(185 100% 55%);

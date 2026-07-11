@@ -1,1 +1,1 @@
-{"root":["./src/App.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/DashboardPage.tsx","./src/components/LoginPage.tsx","./src/lib/auth.tsx","./src/lib/supabase.ts"],"version":"5.9.3"}
+{"root":["./src/App.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/ActivityPage.tsx","./src/components/DashboardShell.tsx","./src/components/LoginPage.tsx","./src/components/OverviewPage.tsx","./src/components/Sidebar.tsx","./src/components/StockTrendChart.tsx","./src/lib/auth.tsx","./src/lib/supabase.ts","./src/lib/types.ts"],"version":"5.9.3"}
