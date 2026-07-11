@@ -124,6 +124,37 @@ body {
   transform: rotate(180deg);
 }
 
+/* Phones: menu lives top-left; hide closed edge tab if it ever renders */
+@media (max-width: 639px) {
+  .sidebar-edge-tab:not([data-open="true"]) {
+    display: none;
+  }
+}
+
+.sidebar-top-menu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  display: inline-flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(185 100% 55% / 0.4);
+  background: hsl(220 18% 10% / 0.92);
+  color: #1affff;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.sidebar-top-menu:active {
+  background: hsl(185 100% 55% / 0.16);
+  border-color: hsl(185 100% 55% / 0.55);
+}
+
 .chart-fullscreen {
   background:
     radial-gradient(ellipse 120% 80% at 50% 0%, hsl(185 100% 55% / 0.12), transparent 55%),

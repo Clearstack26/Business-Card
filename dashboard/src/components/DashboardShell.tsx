@@ -4,6 +4,20 @@ import { ActivityPage } from "./ActivityPage";
 import { OverviewPage } from "./OverviewPage";
 import { Sidebar, type NavItem } from "./Sidebar";
 
+function useIsPhone() {
+  const [isPhone, setIsPhone] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const update = () => setIsPhone(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  return isPhone;
+}
+
 function EdgeTab({
   open,
   onClick,
@@ -31,6 +45,21 @@ function EdgeTab({
         aria-hidden
       >
         <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
+function TopMenuButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Open menu"
+      className="sidebar-top-menu"
+    >
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.25" aria-hidden>
+        <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
       </svg>
     </button>
   );
@@ -83,6 +112,7 @@ export function DashboardShell({
 }) {
   const [active, setActive] = useState<NavItem>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isPhone = useIsPhone();
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -116,14 +146,21 @@ export function DashboardShell({
         onClose={() => setSidebarOpen(false)}
       />
 
-      <EdgeTab
-        open={sidebarOpen}
-        onClick={() => setSidebarOpen((v) => !v)}
-        ariaLabel={sidebarOpen ? "Close menu" : "Open menu"}
-      />
+      {/* Phones: edge tab only while drawer is open (to close). Tablet/desktop: always. */}
+      {!isPhone || sidebarOpen ? (
+        <EdgeTab
+          open={sidebarOpen}
+          onClick={() => setSidebarOpen((v) => !v)}
+          ariaLabel={sidebarOpen ? "Close menu" : "Open menu"}
+        />
+      ) : null}
 
       <main className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pt-[max(1.25rem,env(safe-area-inset-top))] md:px-8 lg:px-10">
-        <header className="mb-5 flex flex-col items-center text-center sm:mb-8">
+        <header className="relative mb-5 flex flex-col items-center text-center sm:mb-8">
+          {isPhone && !sidebarOpen ? (
+            <TopMenuButton onClick={() => setSidebarOpen(true)} />
+          ) : null}
+
           <div className="flex flex-col items-center gap-3">
             <img
               src="/clearstack-logo.png"
