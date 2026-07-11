@@ -39,22 +39,24 @@ export function DashboardShell({
         onClose={() => setSidebarOpen(false)}
       />
 
+      {/* Edge pull tab - all devices */}
       <motion.button
         type="button"
         aria-label={sidebarOpen ? "Close menu" : "Open menu"}
         aria-expanded={sidebarOpen}
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.96 }}
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
         onClick={() => setSidebarOpen((open) => !open)}
         className={[
-          "fixed z-[60] flex h-14 w-8 items-center justify-center rounded-r-xl border border-l-0 border-border/80 bg-card/90 text-muted shadow-lg backdrop-blur transition hover:border-primary/40 hover:text-primary",
-          "left-0 top-[max(5.5rem,18%)] sm:top-1/2 sm:-translate-y-1/2",
-          sidebarOpen ? "translate-x-[min(18rem,86vw)]" : "translate-x-0",
+          "fixed z-[60] flex h-16 w-9 items-center justify-center rounded-r-2xl border border-l-0 border-border/80 bg-card/95 text-muted shadow-xl backdrop-blur transition hover:border-primary/40 hover:text-primary",
+          "left-0 top-[max(6rem,22vh)] sm:top-1/2 sm:-translate-y-1/2",
+          "pl-[env(safe-area-inset-left)]",
+          sidebarOpen ? "translate-x-[min(20rem,88vw)] sm:translate-x-80" : "translate-x-0",
         ].join(" ")}
       >
         <svg
           viewBox="0 0 24 24"
-          className={["h-4 w-4 transition-transform", sidebarOpen ? "rotate-180" : ""].join(" ")}
+          className={["h-5 w-5 transition-transform duration-200", sidebarOpen ? "rotate-180" : ""].join(" ")}
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -63,13 +65,13 @@ export function DashboardShell({
         </svg>
       </motion.button>
 
-      <main className="min-h-screen px-4 pb-8 pt-5 pl-10 sm:px-6 sm:pl-12 lg:px-10 lg:pb-10 lg:pt-7 lg:pl-12">
-        <header className="mb-6 flex flex-col items-center text-center sm:mb-8">
+      <main className="min-h-screen px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] pl-11 sm:px-6 sm:pl-14 md:px-8 lg:px-10 lg:pl-14">
+        <header className="mb-5 flex flex-col items-center text-center sm:mb-8">
           <div className="flex flex-col items-center gap-3">
             <img
               src="/clearstack-logo.png"
               alt="ClearStack Digital"
-              className="h-10 w-auto sm:h-11"
+              className="h-9 w-auto sm:h-11"
             />
             <div>
               <p className="font-display text-lg font-semibold tracking-tight sm:text-xl">
@@ -79,7 +81,7 @@ export function DashboardShell({
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-center">
+          <div className="mt-4 flex items-center justify-center gap-2">
             <span
               className={[
                 "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.14em]",

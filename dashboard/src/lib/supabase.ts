@@ -132,7 +132,7 @@ export async function fetchDashboardStats(period: TrendPeriod = "30d"): Promise<
     supabase
       .from("qr_scan_events")
       .select(
-        "id, scanned_at, scan_date, source, session_id, device_type, country, city, referrer"
+        "id, scanned_at, scan_date, source, session_id, device_type, country, region, city, latitude, longitude, scanner_timezone, referrer"
       )
       .order("scanned_at", { ascending: false })
       .limit(50),

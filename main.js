@@ -144,10 +144,18 @@ function trackCardScan() {
     /* continue without dedupe storage */
   }
 
+  let timezone = null;
+  try {
+    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    timezone = null;
+  }
+
   const payload = JSON.stringify({
     session_id: sessionId,
     source: resolveScanSource(),
     referrer: document.referrer || null,
+    timezone,
   });
 
   fetch("/api/track-scan", {

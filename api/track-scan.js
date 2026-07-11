@@ -39,6 +39,21 @@ function normalizeSource(value) {
   return "direct";
 }
 
+function decodeHeader(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  try {
+    return decodeURIComponent(raw.replace(/\+/g, " "));
+  } catch {
+    return raw;
+  }
+}
+
+function parseCoord(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).end();
@@ -74,22 +89,16 @@ module.exports = async function handler(req, res) {
   const source = normalizeSource(body?.source);
   const userAgent = String(req.headers["user-agent"] || "").slice(0, 512);
   const referrer = String(req.headers.referer || body?.referrer || "").slice(0, 512);
-  const countryRaw = String(req.headers["x-vercel-ip-country"] || "").trim();
-  const regionRaw = String(req.headers["x-vercel-ip-country-region"] || "").trim();
-  const cityRaw = String(req.headers["x-vercel-ip-city"] || "").trim();
+  const scannerTimezone = String(body?.timezone || "")
+    .trim()
+    .slice(0, 64) || null;
 
-  let city = null;
-  if (cityRaw) {
-    try {
-      city = decodeURIComponent(cityRaw).slice(0, 128);
-    } catch {
-      city = cityRaw.slice(0, 128);
-    }
-  } else if (regionRaw) {
-    city = regionRaw.slice(0, 128);
-  }
-
-  const country = countryRaw.slice(0, 8) || null;
+  // Vercel edge geo (IP of the person who scanned)
+  const country = (decodeHeader(req.headers["x-vercel-ip-country"]) || "").toUpperCase().slice(0, 8) || null;
+  const region = (decodeHeader(req.headers["x-vercel-ip-country-region"]) || "").toUpperCase().slice(0, 32) || null;
+  const city = (decodeHeader(req.headers["x-vercel-ip-city"]) || "").slice(0, 128) || null;
+  const latitude = parseCoord(req.headers["x-vercel-ip-latitude"]);
+  const longitude = parseCoord(req.headers["x-vercel-ip-longitude"]);
 
   const now = new Date();
   const scanDate = now.toISOString().slice(0, 10);
@@ -105,7 +114,11 @@ module.exports = async function handler(req, res) {
     session_id: sessionId || null,
     device_type: detectDeviceType(userAgent),
     country,
+    region,
     city,
+    latitude,
+    longitude,
+    scanner_timezone: scannerTimezone,
     referrer: referrer || null,
     user_agent: userAgent || null,
   });

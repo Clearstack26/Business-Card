@@ -8,7 +8,11 @@ export type ScanEvent = {
   session_id: string | null;
   device_type: string | null;
   country: string | null;
+  region: string | null;
   city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  scanner_timezone: string | null;
   referrer: string | null;
 };
 
