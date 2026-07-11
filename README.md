@@ -27,6 +27,7 @@ That regenerates **`mathew-alexander.vcf`** and **`vcard-qr.json`** (used by the
 | --- | --- |
 | **`/`** | **Dual QR** — card URL + vCard save |
 | **`/card`** | Full digital **business card** |
+| **`/admin`** | Private scan analytics (bookmark only — not linked publicly) |
 | **`/mathew-alexander.vcf`** | Downloadable contact file (same data as QR #2) |
 
 Edit **[site-config.json](site-config.json)**:
@@ -63,6 +64,31 @@ npm start
 Open **http://localhost:3000/** (dual QR) or **http://localhost:3000/card**.
 
 On **Windows PowerShell**, use **`;`** instead of **`&&`** between commands if needed.
+
+## QR scan analytics (private admin)
+
+Every `/card` visit is tracked silently and stored in the **ClearStack Supabase project** (`siaktnkaavgefjxgprrf`).
+
+### Setup (one time)
+
+1. Run the SQL migration in Supabase: [`supabase/migrations/001_qr_scan_events.sql`](supabase/migrations/001_qr_scan_events.sql)
+2. In Vercel project settings, add env vars from [`.env.example`](.env.example):
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY` (server only — for `/api/track-scan`)
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY` (admin dashboard login + charts)
+3. Redeploy so `npm run vercel-build` builds the admin SPA.
+
+### Access
+
+- Bookmark **`https://your-domain/admin`** (not linked from `/` or `/card`)
+- Sign in with your **ClearStack portal email + password**
+- No forgot-password link — use your existing ClearStack credentials
+- Session ends when you close the tab (login required each visit)
+
+QR #1 on `/` encodes `/card?src=qr` so scans are tagged as QR-sourced. Existing printed QRs pointing to `/card` still count.
+
+---
 
 ## Deploy on Vercel
 
